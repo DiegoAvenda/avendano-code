@@ -1,0 +1,48 @@
+{
+	"name": "avendano-code",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write ."
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@sveltejs/adapter-auto": "^8.0.0",
+		"@sveltejs/kit": "^3.0.0",
+		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"@tailwindcss/vite": "^4.3.0",
+		"@types/node": "^22",
+		"eslint": "^10.4.1",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-svelte": "^3.19.0",
+		"globals": "^17.6.0",
+		"prettier": "^3.8.3",
+		"prettier-plugin-svelte": "^4.1.0",
+		"prettier-plugin-tailwindcss": "^0.8.0",
+		"svelte": "^5.57.1",
+		"tailwindcss": "^4.3.0",
+		"vite": "^8.3.0"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	},
+	"dependencies": {
+		"@codemirror/autocomplete": "^6.20.3",
+		"@codemirror/commands": "^6.11.1",
+		"@codemirror/lang-css": "^6.3.1",
+		"@codemirror/lang-html": "^6.4.12",
+		"@codemirror/lang-javascript": "^6.2.5",
+		"@codemirror/language": "^6.12.4",
+		"@codemirror/state": "^6.7.6",
+		"@codemirror/theme-one-dark": "^6.1.3",
+		"@codemirror/view": "^6.43.13",
+		"codemirror": "^6.0.2"
+	}
+}
