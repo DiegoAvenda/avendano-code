@@ -1,1 +1,80 @@
 @import 'tailwindcss';
+
+/*
+ * Single source of truth for the app palette. Tailwind turns each entry into
+ * utilities (bg-surface-1, text-muted, border-line, …) so components never
+ * need custom CSS. The lesson starter CSS is course material and stays plain
+ * CSS on purpose — it is what learners read and edit.
+ */
+@theme {
+	--color-bg: #0f0f1e;
+	--color-surface-1: #161628;
+	--color-surface-2: #1e1e34;
+	--color-surface-3: #3a3a5c;
+	--color-line: #2a2a44;
+	--color-ink: #e8e8f0;
+	--color-muted: #8888aa;
+	--color-accent: #8b8bcc;
+
+	--font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+body {
+	@apply m-0 bg-bg font-sans text-ink;
+}
+
+/*
+ * Lesson prose is injected with {@html} from src/lib/markdown.js, so the
+ * generated tags cannot carry utility classes. The renderer emits these
+ * semantic names and they are built from the same Tailwind utilities here.
+ */
+@layer components {
+	.md-h3 {
+		@apply mt-4 mb-2 text-base font-semibold text-ink;
+	}
+
+	.md-h4 {
+		@apply mt-3 mb-1.5 text-sm font-semibold text-ink;
+	}
+
+	.md-list {
+		@apply my-2 ml-6 list-disc space-y-1;
+	}
+
+	.md-list .md-list {
+		@apply my-1 ml-5;
+	}
+
+	ol.md-list {
+		@apply list-decimal;
+	}
+
+	.md-li {
+		@apply pl-1;
+	}
+
+	.md-table {
+		@apply my-2 w-full border-collapse text-xs;
+	}
+
+	.md-table th,
+	.md-table td {
+		@apply border border-line px-2.5 py-1.5 text-left;
+	}
+
+	.md-table th {
+		@apply bg-surface-2 font-semibold;
+	}
+
+	.md-code-block {
+		@apply my-2 overflow-x-auto rounded-md border border-line bg-[#111122] p-3 font-mono text-[12.5px] leading-relaxed;
+	}
+
+	.md-code-inline {
+		@apply rounded-[3px] bg-accent/15 px-1.5 py-px font-mono text-[0.9em] text-[#c4b5fd];
+	}
+
+	.md-link {
+		@apply text-[#8bb4ff] underline;
+	}
+}

@@ -1,30 +1,45 @@
 <script>
+	import { onDestroy, untrack } from 'svelte';
 	import CodeEditor from './CodeEditor.svelte';
 	import Preview from './Preview.svelte';
 	import ConsolePanel from './Console.svelte';
 
+	/** Console output is capped so a runaway lesson cannot grow the list forever. */
+	const MAX_CONSOLE_MESSAGES = 500;
+
+	/** Shared look for the toolbar buttons; each variant adds its own colours. */
+	const ACTION_BUTTON =
+		'cursor-pointer rounded-[5px] border px-3.5 py-[5px] text-xs font-semibold transition-all duration-150';
+
 	/**
 	 * @type {{
+	 *   lessonId: number,
 	 *   starterCode: { html: string, css: string, javascript: string },
 	 *   savedCode: { html: string, css: string, javascript: string } | null,
-	 *   onsave: (code: { html: string, css: string, javascript: string }) => void
+	 *   onsave: (lessonId: number, code: { html: string, css: string, javascript: string }) => void
 	 * }}
 	 */
-	let { starterCode, savedCode = null, onsave } = $props();
+	let { lessonId, starterCode, savedCode = null, onsave } = $props();
 
 	// Active tab
 	let activeTab = $state('javascript');
 	const tabs = ['html', 'css', 'javascript'];
 
-	// Code state — initialize from saved or starter
+	// Code state — initialized ONCE from saved or starter.
+	// The parent remounts this component per lesson ({#key lesson.id}),
+	// so no $effect is needed to track lesson switches. This intentionally
+	// avoids re-running on parent `savedCode` updates (which happen on every
+	// keystroke via onsave) — that would wipe the console while typing.
+	const initialCode = untrack(() => savedCode ?? starterCode);
 	let code = $state({
-		html: savedCode?.html ?? starterCode.html,
-		css: savedCode?.css ?? starterCode.css,
-		javascript: savedCode?.javascript ?? starterCode.javascript
+		html: initialCode.html,
+		css: initialCode.css,
+		javascript: initialCode.javascript
 	});
 
 	// Console messages
 	let consoleMessages = $state([]);
+	let nextMessageId = 0;
 
 	// Preview component ref
 	let previewRef;
@@ -32,9 +47,43 @@
 	// Console panel collapsed
 	let consoleCollapsed = $state(false);
 
+	// Debounced save — avoids writing to localStorage on every keystroke.
+	// The lesson id is captured when the edit happens, so a pending save can
+	// never be attributed to whichever lesson happens to be open when the
+	// timer fires (the old bug wrote lesson A's code into lesson B).
+	/** @type {{ lessonId: number, code: { html: string, css: string, javascript: string } } | null} */
+	let pendingSave = null;
+	/** @type {ReturnType<typeof setTimeout> | undefined} */
+	let saveTimer;
+
+	function scheduleSave(nextCode) {
+		pendingSave = { lessonId, code: nextCode };
+		clearTimeout(saveTimer);
+		saveTimer = setTimeout(flushSave, 500);
+	}
+
+	function cancelPendingSave() {
+		clearTimeout(saveTimer);
+		saveTimer = undefined;
+		pendingSave = null;
+	}
+
+	function flushSave() {
+		clearTimeout(saveTimer);
+		saveTimer = undefined;
+		if (!pendingSave) return;
+		const { lessonId: id, code: pendingCode } = pendingSave;
+		pendingSave = null;
+		onsave?.(id, pendingCode);
+	}
+
+	// Flush (instead of dropping) the last keystrokes when the lesson changes.
+	onDestroy(flushSave);
+
 	function handleCodeChange(value) {
-		code = { ...code, [activeTab]: value };
-		onsave?.(code);
+		const next = { ...code, [activeTab]: value };
+		code = next;
+		scheduleSave(next);
 	}
 
 	function handleRun() {
@@ -43,258 +92,109 @@
 	}
 
 	function handleReset() {
+		cancelPendingSave();
 		code = {
 			html: starterCode.html,
 			css: starterCode.css,
 			javascript: starterCode.javascript
 		};
 		consoleMessages = [];
-		onsave?.(code);
+		onsave?.(lessonId, code);
 		// Force re-run after reset
 		setTimeout(() => previewRef?.run(), 50);
 	}
 
 	function handleIframeMessage(msg) {
-		consoleMessages = [
-			...consoleMessages,
-			{ type: msg.type, text: msg.args.join(' ') }
-		];
+		const id = nextMessageId++;
+		consoleMessages = [...consoleMessages, { id, type: msg.type, text: msg.args.join(' ') }].slice(
+			-MAX_CONSOLE_MESSAGES
+		);
 	}
 
 	function handleClearConsole() {
 		consoleMessages = [];
 	}
-
-	// When starterCode changes (lesson switch), reset the editor
-	$effect(() => {
-		const _s = starterCode;
-		code = {
-			html: savedCode?.html ?? _s.html,
-			css: savedCode?.css ?? _s.css,
-			javascript: savedCode?.javascript ?? _s.javascript
-		};
-		consoleMessages = [];
-	});
 </script>
 
-<div class="playground">
-	<!-- Editor Section -->
-	<div class="editor-section">
-		<div class="editor-toolbar">
-			<div class="tab-bar">
-				{#each tabs as tab}
+<div class="flex h-full min-h-0 flex-col overflow-hidden max-[900px]:h-[760px]">
+	<!-- Editor -->
+	<div class="flex min-h-0 flex-[3] flex-col border-b border-line">
+		<div
+			class="flex flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-1"
+		>
+			<div class="flex gap-0" role="tablist" aria-label="Editor language">
+				{#each tabs as tab (tab)}
 					<button
-						class="tab-btn"
-						class:active={activeTab === tab}
+						class="cursor-pointer border-b-2 bg-transparent px-4 py-2 text-xs font-semibold tracking-[0.5px] transition-all duration-150 {activeTab ===
+						tab
+							? 'border-b-accent text-accent'
+							: 'border-b-transparent text-muted hover:text-[#c0c0d8]'}"
+						role="tab"
+						aria-selected={activeTab === tab}
 						onclick={() => (activeTab = tab)}
 					>
 						{tab.toUpperCase()}
 					</button>
 				{/each}
 			</div>
-			<div class="editor-actions">
-				<button class="action-btn run-btn" onclick={handleRun} title="Run code">
+			<div class="flex gap-1.5 p-1">
+				<button
+					class="{ACTION_BUTTON} border-[#2d6a4f] bg-[#2d6a4f] text-[#a7f3d0] hover:bg-[#40916c]"
+					onclick={handleRun}
+					title="Run code"
+				>
 					▶ Run
 				</button>
-				<button class="action-btn reset-btn" onclick={handleReset} title="Reset to starter code">
+				<button
+					class="{ACTION_BUTTON} border-line bg-surface-2 text-muted hover:bg-surface-3 hover:text-ink"
+					onclick={handleReset}
+					title="Reset to starter code"
+				>
 					↺ Reset
 				</button>
 			</div>
 		</div>
 
-		<div class="editor-container">
-			{#key activeTab + starterCode.html}
-				<CodeEditor
-					code={code[activeTab]}
-					language={activeTab}
-					onchange={handleCodeChange}
-				/>
-			{/key}
+		<div
+			class="min-h-0 flex-1 overflow-hidden"
+			role="tabpanel"
+			aria-label={activeTab.toUpperCase()}
+		>
+			<CodeEditor code={code[activeTab]} language={activeTab} onchange={handleCodeChange} />
 		</div>
 	</div>
 
-	<!-- Preview Section -->
-	<div class="preview-section">
-		<div class="preview-header">
-			<span class="preview-title">Preview</span>
+	<!-- Preview -->
+	<div class="flex min-h-0 flex-[2] flex-col border-b border-line">
+		<div class="flex-shrink-0 border-b border-line bg-surface-1 px-3 py-1.5">
+			<span class="text-xs font-semibold tracking-[0.5px] text-muted uppercase">Preview</span>
 		</div>
-		<div class="preview-body">
-			<Preview
-				bind:this={previewRef}
-				{code}
-				onmessage={handleIframeMessage}
-			/>
+		<div class="min-h-0 flex-1">
+			<Preview bind:this={previewRef} {code} onmessage={handleIframeMessage} />
 		</div>
 	</div>
 
-	<!-- Console Section -->
-	<div class="console-section" class:collapsed={consoleCollapsed}>
+	<!-- Console -->
+	<div class="flex max-h-[220px] min-h-8 flex-shrink-0 flex-col {consoleCollapsed ? '' : 'h-32'}">
 		<button
-			class="console-toggle"
+			class="w-full cursor-pointer items-center gap-1.5 border-t border-line bg-surface-1 px-3 py-1.5 text-xs font-semibold tracking-[0.5px] text-muted uppercase max-[900px]:flex {consoleCollapsed
+				? 'flex'
+				: 'hidden'}"
 			onclick={() => (consoleCollapsed = !consoleCollapsed)}
 		>
 			{consoleCollapsed ? '▲' : '▼'} Console
 			{#if consoleMessages.length > 0}
-				<span class="badge">{consoleMessages.length}</span>
+				<span class="rounded-lg bg-surface-3 px-1.5 py-px text-[10px]">
+					{consoleMessages.length}
+				</span>
 			{/if}
 		</button>
 		{#if !consoleCollapsed}
 			<ConsolePanel
 				messages={consoleMessages}
 				onclear={handleClearConsole}
+				oncollapse={() => (consoleCollapsed = true)}
 			/>
 		{/if}
 	</div>
 </div>
-
-<style>
-	.playground {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-		min-height: 0;
-	}
-
-	/* ── Editor ── */
-	.editor-section {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		min-height: 0;
-		border-bottom: 1px solid var(--border, #2a2a44);
-	}
-	.editor-toolbar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0 4px;
-		background: var(--surface-1, #161628);
-		border-bottom: 1px solid var(--border, #2a2a44);
-		flex-shrink: 0;
-	}
-	.tab-bar {
-		display: flex;
-		gap: 0;
-	}
-	.tab-btn {
-		background: none;
-		border: none;
-		padding: 8px 16px;
-		font-size: 12px;
-		font-weight: 600;
-		color: var(--text-secondary, #6666880);
-		cursor: pointer;
-		border-bottom: 2px solid transparent;
-		transition: all 0.15s;
-		letter-spacing: 0.5px;
-	}
-	.tab-btn:hover {
-		color: var(--text-primary, #c0c0d8);
-	}
-	.tab-btn.active {
-		color: var(--accent, #8b8bcc);
-		border-bottom-color: var(--accent, #8b8bcc);
-	}
-	.editor-actions {
-		display: flex;
-		gap: 6px;
-		padding: 4px;
-	}
-	.action-btn {
-		padding: 5px 14px;
-		border-radius: 5px;
-		font-size: 12px;
-		font-weight: 600;
-		cursor: pointer;
-		border: 1px solid var(--border, #3a3a5c);
-		transition: all 0.15s;
-	}
-	.run-btn {
-		background: #2d6a4f;
-		color: #a7f3d0;
-		border-color: #2d6a4f;
-	}
-	.run-btn:hover {
-		background: #40916c;
-	}
-	.reset-btn {
-		background: var(--surface-2, #2a2a44);
-		color: var(--text-secondary, #8888aa);
-	}
-	.reset-btn:hover {
-		background: var(--surface-3, #3a3a5c);
-		color: var(--text-primary, #e0e0e0);
-	}
-	.editor-container {
-		flex: 1;
-		min-height: 0;
-		overflow: hidden;
-	}
-
-	/* ── Preview ── */
-	.preview-section {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		min-height: 200px;
-		border-bottom: 1px solid var(--border, #2a2a44);
-	}
-	.preview-header {
-		padding: 6px 12px;
-		background: var(--surface-1, #161628);
-		border-bottom: 1px solid var(--border, #2a2a44);
-		flex-shrink: 0;
-	}
-	.preview-title {
-		font-size: 12px;
-		font-weight: 600;
-		color: var(--text-secondary, #8888aa);
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-	}
-	.preview-body {
-		flex: 1;
-		min-height: 0;
-	}
-
-	/* ── Console ── */
-	.console-section {
-		flex-shrink: 0;
-		min-height: 32px;
-		max-height: 200px;
-		display: flex;
-		flex-direction: column;
-	}
-	.console-section:not(.collapsed) {
-		height: 160px;
-	}
-	.console-toggle {
-		display: none;
-	}
-
-	/* On smaller viewports, show toggle */
-	@media (max-width: 900px) {
-		.console-toggle {
-			display: flex;
-			align-items: center;
-			gap: 6px;
-			width: 100%;
-			background: var(--surface-1, #161628);
-			border: none;
-			border-top: 1px solid var(--border, #2a2a44);
-			color: var(--text-secondary, #8888aa);
-			padding: 6px 12px;
-			font-size: 12px;
-			font-weight: 600;
-			cursor: pointer;
-			text-transform: uppercase;
-			letter-spacing: 0.5px;
-		}
-		.badge {
-			background: var(--surface-3, #3a3a5c);
-			padding: 1px 6px;
-			border-radius: 8px;
-			font-size: 10px;
-		}
-	}
-</style>

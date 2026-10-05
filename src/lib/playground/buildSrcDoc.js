@@ -3,11 +3,22 @@
  *
  * We inject a postMessage bridge that captures console.log/warn/error,
  * window.onerror, and unhandledrejection — and forwards them to the parent.
+ *
+ * NOTE on lint: this module intentionally builds `</script>`-style sequences
+ * with an escaped slash (`\/`). The `no-useless-escape` rule is disabled below
+ * because removing the backslash would let the sequence read as a real HTML
+ * closing tag when this source is embedded or inspected.
  */
+/* eslint-disable no-useless-escape */
 
 const BRIDGE_SCRIPT = `
 <script>
 (function() {
+  // Capture the parent window NOW. A lesson may declare its own top level
+  // "parent" binding (union-find uses that name), which would shadow the
+  // global inside this function and make postMessage fail silently later.
+  const bridgeTarget = window.parent;
+
   // ── Console capture ──
   const _log = console.log;
   const _warn = console.warn;
@@ -23,7 +34,7 @@ const BRIDGE_SCRIPT = `
         }
         return String(a);
       });
-      parent.postMessage({ __playground: true, type, args: serialized }, '*');
+      bridgeTarget.postMessage({ __playground: true, type, args: serialized }, '*');
     } catch(e) { /* ignore serialization errors */ }
   }
 
@@ -54,8 +65,15 @@ export function buildSrcDoc(code) {
 	// Otherwise we wrap everything.
 
 	let html = code.html || '';
-	const css = code.css || '';
-	const js = code.javascript || '';
+	// Escape user content so it can't prematurely close our injected tags.
+	// Without this, a closing script tag inside a JS string would break the preview
+	// (the HTML parser ends the <script> element at the first closing tag it sees).
+	const SLASH = String.fromCharCode(47);
+	const BACKSLASH = String.fromCharCode(92);
+	const css = (code.css || '').split('<' + SLASH + 'style').join('<' + BACKSLASH + SLASH + 'style');
+	const js = (code.javascript || '')
+		.split('<' + SLASH + 'script')
+		.join('<' + BACKSLASH + SLASH + 'script');
 
 	// Inject bridge as the very first script (before anything else)
 	const bridgeAndStyle = BRIDGE_SCRIPT + (css ? `<style>${css}</style>` : '');
@@ -66,17 +84,18 @@ export function buildSrcDoc(code) {
 	// Replace the user's script src reference — we inline the JS instead
 	html = html.replace(/<script[^>]*src=["'][^"']*["'][^>]*><\/script>/gi, '');
 
-	// Inject bridge + CSS into <head> if it exists
-	if (html.includes('</head>')) {
-		html = html.replace('</head>', bridgeAndStyle + '</head>');
+	// Inject bridge + CSS into <head> if it exists (case-insensitive)
+	if (/<\/head\s*>/i.test(html)) {
+		html = html.replace(/<\/head\s*>/i, () => bridgeAndStyle + '</head>');
 	} else {
 		html = bridgeAndStyle + html;
 	}
 
-	// Inject JS before </body> or at the end
-	const jsTag = js ? `<script>${js}<\/script>` : '';
-	if (html.includes('</body>')) {
-		html = html.replace('</body>', jsTag + '</body>');
+	// Inject JS before </body> or at the end (tag split so this source
+	// never holds a contiguous closing-tag sequence)
+	const jsTag = js ? '<script>' + js + '</scr' + 'ipt>' : '';
+	if (/<\/body\s*>/i.test(html)) {
+		html = html.replace(/<\/body\s*>/i, () => jsTag + '</body>');
 	} else {
 		html += jsTag;
 	}

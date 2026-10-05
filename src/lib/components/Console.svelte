@@ -1,8 +1,24 @@
 <script>
 	/**
-	 * @type {{ messages: Array<{ type: string, text: string }> , onclear: () => void }}
+	 * @type {{
+	 *   messages: Array<{ id: number, type: string, text: string }>,
+	 *   onclear: () => void,
+	 *   oncollapse?: () => void
+	 * }}
 	 */
-	let { messages = [], onclear } = $props();
+	let { messages = [], onclear, oncollapse } = $props();
+
+	/** Full class strings so Tailwind can see them while scanning. */
+	const MESSAGE_CLASSES = {
+		log: 'text-[#b0b0c8]',
+		warn: 'bg-[rgba(251,191,36,0.05)] text-[#fbbf24]',
+		error: 'bg-[rgba(248,113,113,0.05)] text-[#f87171]'
+	};
+
+	/** @param {string} type */
+	function messageClass(type) {
+		return MESSAGE_CLASSES[type] ?? MESSAGE_CLASSES.log;
+	}
 
 	let scrollContainer;
 
@@ -14,122 +30,53 @@
 	});
 </script>
 
-<div class="console-panel">
-	<div class="console-header">
-		<span class="console-title">Console</span>
-		<span class="console-count">{messages.length}</span>
-		<button class="console-clear" onclick={onclear} title="Clear console">✕</button>
+<div class="flex h-full flex-col border-t border-line bg-[#0d0d1a]">
+	<div class="flex flex-shrink-0 items-center gap-2 border-b border-line bg-surface-1 px-3 py-1.5">
+		<span class="text-xs font-semibold tracking-wide text-muted uppercase">Console</span>
+		<span class="rounded-lg bg-surface-3 px-1.5 py-px text-[10px] text-muted tabular-nums">
+			{messages.length}
+		</span>
+		<div class="ml-auto flex items-center gap-1">
+			{#if oncollapse}
+				<button
+					class="cursor-pointer rounded-[3px] border-none bg-transparent px-1.5 py-0.5 text-xs text-muted hover:bg-surface-3 hover:text-ink"
+					onclick={oncollapse}
+					title="Collapse console"
+					aria-label="Collapse console">▾</button
+				>
+			{/if}
+			<button
+				class="cursor-pointer rounded-[3px] border-none bg-transparent px-1.5 py-0.5 text-xs text-muted hover:bg-surface-3 hover:text-ink"
+				onclick={onclear}
+				title="Clear console">✕</button
+			>
+		</div>
 	</div>
-	<div class="console-messages" bind:this={scrollContainer}>
+	<div
+		class="flex-1 [scrollbar-width:thin] [scrollbar-color:var(--color-surface-3)_transparent] overflow-y-auto py-1 font-mono text-xs"
+		bind:this={scrollContainer}
+		role="log"
+		aria-live="polite"
+	>
 		{#if messages.length === 0}
-			<div class="console-empty">No output yet. Run your code to see results here.</div>
+			<div class="p-3 font-sans text-xs text-muted italic">
+				No output yet. Run your code to see results here.
+			</div>
 		{:else}
-			{#each messages as msg}
-				<div class="console-msg console-{msg.type}">
-					<span class="msg-prefix">
+			{#each messages as msg (msg.id)}
+				<div
+					class="flex gap-2 border-b border-line/40 px-3 py-0.5 leading-relaxed break-words hover:bg-surface-2/30 {messageClass(
+						msg.type
+					)}"
+				>
+					<span
+						class="w-3.5 flex-shrink-0 text-center {msg.type === 'log' ? 'text-[#6366f1]' : ''}"
+					>
 						{#if msg.type === 'warn'}⚠{:else if msg.type === 'error'}✕{:else}›{/if}
 					</span>
-					<span class="msg-text">{msg.text}</span>
+					<span class="min-w-0 flex-1">{msg.text}</span>
 				</div>
 			{/each}
 		{/if}
 	</div>
 </div>
-
-<style>
-	.console-panel {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-		background: #0d0d1a;
-		border-top: 1px solid var(--border, #2a2a44);
-	}
-	.console-header {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 6px 12px;
-		background: var(--surface-1, #161628);
-		border-bottom: 1px solid var(--border, #2a2a44);
-		flex-shrink: 0;
-	}
-	.console-title {
-		font-size: 12px;
-		font-weight: 600;
-		color: var(--text-secondary, #8888aa);
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-	}
-	.console-count {
-		font-size: 10px;
-		background: var(--surface-3, #3a3a5c);
-		color: var(--text-secondary, #8888aa);
-		padding: 1px 6px;
-		border-radius: 8px;
-		font-variant-numeric: tabular-nums;
-	}
-	.console-clear {
-		margin-left: auto;
-		background: none;
-		border: none;
-		color: var(--text-secondary, #666);
-		cursor: pointer;
-		font-size: 12px;
-		padding: 2px 6px;
-		border-radius: 3px;
-	}
-	.console-clear:hover {
-		background: var(--surface-3, #3a3a5c);
-		color: var(--text-primary, #e0e0e0);
-	}
-	.console-messages {
-		flex: 1;
-		overflow-y: auto;
-		padding: 4px 0;
-		font-family: 'JetBrains Mono', 'Fira Code', monospace;
-		font-size: 12px;
-		scrollbar-width: thin;
-		scrollbar-color: var(--surface-3, #3a3a5c) transparent;
-	}
-	.console-empty {
-		padding: 12px;
-		color: var(--text-secondary, #555);
-		font-style: italic;
-		font-family: system-ui, sans-serif;
-		font-size: 12px;
-	}
-	.console-msg {
-		display: flex;
-		gap: 8px;
-		padding: 3px 12px;
-		border-bottom: 1px solid rgba(42, 42, 68, 0.4);
-		line-height: 1.5;
-		word-break: break-word;
-	}
-	.console-msg:hover {
-		background: rgba(42, 42, 68, 0.3);
-	}
-	.msg-prefix {
-		flex-shrink: 0;
-		width: 14px;
-		text-align: center;
-	}
-	.msg-text {
-		flex: 1;
-		min-width: 0;
-	}
-	.console-log {
-		color: #b0b0c8;
-	}
-	.console-log .msg-prefix {
-		color: #6366f1;
-	}
-	.console-warn {
-		color: #fbbf24;
-		background: rgba(251, 191, 36, 0.05);
-	}
-	.console-error {
-		color: #f87171;
-		background: rgba(248, 113, 113, 0.05);
-	}
-</style>

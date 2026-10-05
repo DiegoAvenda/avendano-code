@@ -1,249 +1,134 @@
 <script>
-	import LessonPanel from '#lib/components/LessonPanel.svelte';
-	import Playground from '#lib/components/Playground.svelte';
-	import LessonNavigation from '#lib/components/LessonNavigation.svelte';
-	import { lessons, projectMeta } from '#lib/content/pixel-editor/lessons.js';
+	import { lessonList, modules, phases } from '#lib/content/pixel-editor/lessons.js';
 	import { createProgressStore } from '#lib/stores/progress.svelte.js';
 
 	const progress = createProgressStore();
 
-	const initialId = progress.currentLesson ?? 1;
-	let currentId = $state(initialId >= 1 && initialId <= lessons.length ? initialId : 1);
+	const currentLesson = $derived(progress.currentLesson ?? 1);
+	const currentEntry = $derived(
+		lessonList.find((entry) => entry.id === currentLesson) ?? lessonList[0]
+	);
+	const currentModule = $derived(
+		modules.find((entry) => currentLesson >= entry.from && currentLesson <= entry.to) ?? modules[0]
+	);
 
-	let lesson = $derived(lessons.find((l) => l.id === currentId) ?? lessons[0]);
-	let savedCode = $derived(progress.getEditorContents(currentId));
-	let completed = $derived(progress.isCompleted(currentId));
-
-	function goPrevious() {
-		if (currentId > 1) currentId = currentId - 1;
+	/**
+	 * @param {(typeof modules)[number]} module
+	 */
+	function lessonsOf(module) {
+		return lessonList.filter((entry) => entry.id >= module.from && entry.id <= module.to);
 	}
 
-	function goNext() {
-		if (currentId < lessons.length) currentId = currentId + 1;
+	/**
+	 * @param {(typeof modules)[number]} module
+	 */
+	function completedOf(module) {
+		return lessonsOf(module).filter((entry) => progress.isCompleted(entry.id)).length;
 	}
 
-	function handleSave(code) {
-		progress.saveEditorContents(currentId, code);
+	/**
+	 * @param {(typeof modules)[number]} module
+	 */
+	function percentOf(module) {
+		const total = lessonsOf(module).length;
+		return total === 0 ? 0 : Math.round((completedOf(module) / total) * 100);
 	}
 
-	function toggleComplete() {
-		progress.markCompleted(currentId);
+	/**
+	 * @param {(typeof modules)[number]} module
+	 */
+	function resumeHref(module) {
+		const target =
+			currentLesson >= module.from && currentLesson <= module.to ? currentLesson : module.from;
+		return `/lesson/${target}`;
 	}
 
-	// Persist current lesson whenever it changes
-	$effect(() => {
-		progress.currentLesson = currentId;
-	});
+	/**
+	 * @param {(typeof modules)[number]} module
+	 */
+	function phasesOf(module) {
+		return phases.filter((phase) => phase.from >= module.from && phase.to <= module.to);
+	}
 </script>
 
 <svelte:head>
-	<title>{projectMeta.title} — Frontend Data Structures Lab</title>
+	<title>Frontend Data Structures Lab</title>
 </svelte:head>
 
-<div class="app">
-	<header class="app-header">
-		<div class="header-left">
-			<h1 class="app-title">Frontend Data Structures Lab</h1>
-			<p class="app-subtitle">Project: {projectMeta.title}</p>
-		</div>
-		<div class="header-right">
-			<LessonNavigation
-				{lesson}
-				totalLessons={lessons.length}
-				onprevious={goPrevious}
-				onnext={goNext}
-				isCompleted={completed}
-			/>
+<div class="min-h-screen bg-bg text-ink">
+	<header class="border-b border-line bg-surface-1 px-6 py-12">
+		<div class="mx-auto flex max-w-5xl flex-col gap-4">
+			<p class="m-0 text-[11px] font-semibold tracking-[0.18em] text-accent uppercase">
+				Continuous project course
+			</p>
+			<h1 class="m-0 text-3xl leading-tight font-bold tracking-[-0.02em]">
+				Frontend Data Structures Lab
+			</h1>
+			<p class="m-0 max-w-2xl text-sm leading-relaxed text-muted">
+				Two projects, one continuous thread: build the feature first, then hit its limit, then
+				choose the data structure the problem is asking for. Every module ends by verifying what was
+				built — tests, measurements, resource audit and documented trade-offs.
+			</p>
+			<div class="mt-1 flex flex-wrap items-center gap-3">
+				<a
+					href="/lesson/{currentLesson}"
+					class="rounded-md border border-accent bg-accent/15 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/25"
+				>
+					Continue: lesson {currentLesson} · {currentEntry.title}
+				</a>
+				<span class="text-xs text-muted">Next up in {currentModule.project}</span>
+			</div>
 		</div>
 	</header>
 
-	<div class="lesson-progress-bar">
-		<div class="progress-track">
-			{#each lessons as l}
-				<button
-					class="progress-dot"
-					class:done={progress.isCompleted(l.id)}
-					class:active={l.id === currentId}
-					onclick={() => (currentId = l.id)}
-					title={l.id + '. ' + l.title}
-					aria-label={'Go to lesson ' + l.id}
-				></button>
+	<main class="mx-auto flex max-w-5xl flex-col gap-5 px-6 py-8">
+		<h2 class="m-0 text-[11px] font-semibold tracking-[0.18em] text-muted uppercase">Modules</h2>
+
+		<div class="grid gap-5 lg:grid-cols-2">
+			{#each modules as module (module.id)}
+				<article class="flex flex-col gap-4 rounded-xl border border-line bg-surface-1 p-5">
+					<header class="flex flex-col gap-1">
+						<h3 class="m-0 text-lg font-bold">{module.label}</h3>
+						<p class="m-0 text-xs text-accent">Project: {module.project}</p>
+					</header>
+
+					<p class="m-0 text-sm leading-relaxed text-muted">{module.description}</p>
+
+					<ul class="m-0 flex list-none flex-col gap-1 p-0">
+						{#each phasesOf(module) as phase (phase.id)}
+							<li class="flex items-start gap-2 text-xs text-muted">
+								<span class="text-accent">▸</span>
+								<span>{phase.label}</span>
+							</li>
+						{/each}
+					</ul>
+
+					<div class="mt-auto flex flex-col gap-2">
+						<div class="flex items-center justify-between text-xs text-muted">
+							<span>{completedOf(module)} of {lessonsOf(module).length} lessons complete</span>
+							<span class="tabular-nums">{percentOf(module)}%</span>
+						</div>
+						<div class="h-1.5 w-full overflow-hidden rounded-[3px] bg-surface-3">
+							<div class="h-full bg-accent" style="width: {percentOf(module)}%"></div>
+						</div>
+						<a
+							href={resumeHref(module)}
+							class="mt-1 rounded-md border border-line bg-surface-2 px-3 py-2 text-center text-sm font-semibold text-ink hover:border-accent"
+						>
+							{completedOf(module) > 0 ? 'Continue module →' : 'Start module →'}
+						</a>
+					</div>
+				</article>
 			{/each}
 		</div>
-		<button class="complete-btn" onclick={toggleComplete}>
-			{completed ? '✓ Completed' : 'Mark complete'}
-		</button>
-	</div>
 
-	<main class="app-main">
-		<section class="lesson-col">
-			<LessonPanel {lesson} />
-		</section>
-		<section class="playground-col">
-			{#key lesson.id}
-				<Playground starterCode={lesson.starterCode} {savedCode} onsave={handleSave} />
-			{/key}
-		</section>
+		<p class="m-0 mt-2 text-xs leading-relaxed text-muted">
+			Each module is a project: a new stack, new data structures and the same closing checklist.
+			Lessons are linked, so you can bookmark or share any of them.
+		</p>
 	</main>
 
-	<footer class="app-footer">
-		<span>Vanilla JS + DOM + Canvas in the preview · SvelteKit shell · No backend</span>
-		<span>Progress saved in localStorage</span>
+	<footer class="border-t border-line px-6 py-6 text-center text-[11px] text-muted opacity-80">
+		Vanilla JS + Canvas + DOM · SvelteKit shell · Progress saved in localStorage
 	</footer>
 </div>
-
-<style>
-	:global(:root) {
-		--bg: #0f0f1e;
-		--surface-1: #161628;
-		--surface-2: #1e1e34;
-		--surface-3: #3a3a5c;
-		--border: #2a2a44;
-		--text-primary: #e8e8f0;
-		--text-secondary: #8888aa;
-		--accent: #8b8bcc;
-	}
-	:global(body) {
-		background: var(--bg);
-		color: var(--text-primary);
-		margin: 0;
-		font-family: system-ui, -apple-system, sans-serif;
-	}
-	.app {
-		display: flex;
-		flex-direction: column;
-		height: 100vh;
-		min-height: 100vh;
-		background: var(--bg);
-	}
-	.app-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 16px;
-		padding: 12px 20px;
-		background: var(--surface-1);
-		border-bottom: 1px solid var(--border);
-		flex-shrink: 0;
-		flex-wrap: wrap;
-	}
-	.app-title {
-		font-size: 17px;
-		font-weight: 700;
-		margin: 0;
-		letter-spacing: -0.01em;
-	}
-	.app-subtitle {
-		font-size: 12px;
-		color: var(--text-secondary);
-		margin: 2px 0 0;
-	}
-	.header-right {
-		min-width: 260px;
-	}
-	.lesson-progress-bar {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 8px 20px;
-		background: var(--surface-1);
-		border-bottom: 1px solid var(--border);
-		flex-shrink: 0;
-	}
-	.progress-track {
-		display: flex;
-		gap: 6px;
-		flex: 1;
-	}
-	.progress-dot {
-		width: 100%;
-		max-width: 48px;
-		height: 6px;
-		border-radius: 3px;
-		border: none;
-		background: var(--surface-3);
-		cursor: pointer;
-		padding: 0;
-		transition: background 0.15s;
-	}
-	.progress-dot:hover {
-		background: #4a4a6c;
-	}
-	.progress-dot.active {
-		background: var(--accent);
-	}
-	.progress-dot.done {
-		background: #2d6a4f;
-	}
-	.progress-dot.done.active {
-		background: #40916c;
-	}
-	.complete-btn {
-		background: transparent;
-		border: 1px solid var(--border);
-		color: var(--text-secondary);
-		font-size: 12px;
-		padding: 4px 12px;
-		border-radius: 5px;
-		cursor: pointer;
-		white-space: nowrap;
-	}
-	.complete-btn:hover {
-		border-color: var(--accent);
-		color: var(--text-primary);
-	}
-	.app-main {
-		display: grid;
-		grid-template-columns: minmax(340px, 420px) 1fr;
-		flex: 1;
-		min-height: 0;
-	}
-	.lesson-col {
-		border-right: 1px solid var(--border);
-		background: var(--surface-1);
-		min-height: 0;
-		overflow: hidden;
-		display: flex;
-		flex-direction: column;
-	}
-	.playground-col {
-		min-height: 0;
-		min-width: 0;
-		display: flex;
-		flex-direction: column;
-		background: #0d0d1a;
-	}
-	.app-footer {
-		display: flex;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 6px 20px;
-		font-size: 11px;
-		color: var(--text-secondary);
-		background: var(--surface-1);
-		border-top: 1px solid var(--border);
-		flex-shrink: 0;
-		opacity: 0.7;
-	}
-
-	@media (max-width: 900px) {
-		.app {
-			height: auto;
-		}
-		.app-main {
-			grid-template-columns: 1fr;
-		}
-		.lesson-col {
-			border-right: none;
-			border-bottom: 1px solid var(--border);
-			max-height: none;
-		}
-		.playground-col {
-			min-height: 700px;
-		}
-		.app-footer {
-			flex-direction: column;
-			gap: 2px;
-		}
-	}
-</style>

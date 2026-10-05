@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { buildSrcDoc } from '#lib/playground/buildSrcDoc.js';
+	import { parseIframeMessage } from '#lib/playground/iframeProtocol.js';
 
 	/**
 	 * @type {{
@@ -12,20 +13,40 @@
 
 	let iframeEl;
 	let srcdoc = $state('');
+	let buildCounter = 0;
 
 	// Debounced rebuild of srcdoc
 	let debounceTimer;
+	// The first effect run happens right after mount, where onMount already
+	// built the initial document; skipping it avoids running the lesson twice.
+	let firstRun = true;
+
+	/**
+	 * Every build gets a unique comment so the iframe reloads even when the
+	 * source is identical. Without it, pressing Run would clear the console and
+	 * then reuse the previous document, so the code would never re-execute.
+	 */
+	function buildDocument() {
+		buildCounter += 1;
+		return `${buildSrcDoc(code)}\n<!-- playground build ${buildCounter} -->`;
+	}
 
 	$effect(() => {
-		// Access code to register reactivity
-		const _html = code.html;
-		const _css = code.css;
-		const _js = code.javascript;
+		// Track individual fields so the effect re-runs when any tab changes.
+		const snapshot = [code.html, code.css, code.javascript].join('\0');
+		void snapshot;
+
+		if (firstRun) {
+			firstRun = false;
+			return;
+		}
 
 		clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
-			srcdoc = buildSrcDoc(code);
+			srcdoc = buildDocument();
 		}, 300);
+
+		return () => clearTimeout(debounceTimer);
 	});
 
 	/**
@@ -33,23 +54,22 @@
 	 */
 	export function run() {
 		clearTimeout(debounceTimer);
-		srcdoc = buildSrcDoc(code);
+		srcdoc = buildDocument();
 	}
 
-	// Listen for postMessage from iframe
+	// Listen for postMessage from iframe — only accept messages
+	// coming from our own preview iframe.
 	function handleMessage(event) {
-		const data = event.data;
-		if (!data || !data.__playground) return;
-		onmessage?.({
-			type: data.type,
-			args: data.args || []
-		});
+		const parsed = parseIframeMessage(event);
+		if (!parsed) return;
+		if (iframeEl && event.source !== iframeEl.contentWindow) return;
+		onmessage?.(parsed);
 	}
 
 	onMount(() => {
 		window.addEventListener('message', handleMessage);
 		// Initial render
-		srcdoc = buildSrcDoc(code);
+		srcdoc = buildDocument();
 
 		// NOTE: teardown must live here, not in `onDestroy` — in Svelte 5
 		// `onDestroy` runs during SSR too, where `window` is undefined.
@@ -60,27 +80,12 @@
 	});
 </script>
 
-<div class="preview-container">
+<div class="h-full overflow-hidden rounded-b-lg bg-[#1a1a2e]">
 	<iframe
 		bind:this={iframeEl}
 		{srcdoc}
 		sandbox="allow-scripts"
 		title="Preview"
-		class="preview-iframe"
+		class="h-full w-full border-none bg-[#1a1a2e]"
 	></iframe>
 </div>
-
-<style>
-	.preview-container {
-		height: 100%;
-		background: #1a1a2e;
-		border-radius: 0 0 8px 8px;
-		overflow: hidden;
-	}
-	.preview-iframe {
-		width: 100%;
-		height: 100%;
-		border: none;
-		background: #1a1a2e;
-	}
-</style>
