@@ -1,4 +1,4 @@
-// Lesson 5 — Work With Collections
+// Pixel Art Editor — Lesson 5: Work With Collections
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 5,

@@ -6,7 +6,12 @@
  * without a browser.
  */
 
-import { STORAGE_VERSION, migrateLegacyV1, shiftProgressToV3 } from './progressMigrations.js';
+import {
+	STORAGE_VERSION,
+	migrateLegacyV1,
+	migrateToCurrent,
+	shiftProgressToV4
+} from './progressMigrations.js';
 
 const STORAGE_KEY = 'frontend-data-structures-progress';
 // Legacy key used before versioning was introduced.
@@ -66,15 +71,19 @@ function loadProgress() {
 				};
 			}
 
-			// v2 → v3: the diagram module moved from lessons 26–31 to 30–35.
-			if (parsed.version === 2) {
-				return persistMigration(shiftProgressToV3(parsed));
+			// v3 → v4: two challenge lessons were inserted (after 15 and after 33).
+			if (parsed.version === 3) {
+				return persistMigration(shiftProgressToV4(parsed));
 			}
 
-			// Migration v1 (unversioned, lessons 1-10) -> v2 (lessons 10-19).
-			// Runs ONCE, then chains into the v2 → v3 shift.
+			// v2 → v3 → v4.
+			if (parsed.version === 2) {
+				return persistMigration(migrateToCurrent(parsed));
+			}
+
+			// Migration v1 (unversioned, lessons 1-10) -> v2 -> v3 -> v4.
 			if (!parsed.version) {
-				return persistMigration(shiftProgressToV3(migrateLegacyV1(parsed)));
+				return persistMigration(migrateToCurrent(migrateLegacyV1(parsed)));
 			}
 
 			// Unknown version — for example a payload written by a newer build.

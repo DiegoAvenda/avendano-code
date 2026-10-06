@@ -1,28 +1,46 @@
-// Lesson 20 — Why Vite?
+// Pixel Art Editor — Lesson 20: El Puente de esbuild
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 20,
-	title: 'Why Vite?',
-	description: `You have built the pieces yourself: modules, a dependency graph, and a bundler. Now a tool can appear — and it will make sense, because you know the problem it solves.
-
-In development you want **fast feedback**: don't bundle everything on every change. Transform a module the first time it is requested and keep it in a cache, serve it as a native ES module, and when a file changes, send the browser **only the patch** for that module. That is a dev server with hot module replacement.
-
-For production you want the opposite: **one optimised build**. Every module transformed once, bundled and minified, assets emitted with content hashes so they can be cached forever.
+	title: 'El Puente de esbuild',
+	description: `We felt the problem in the previous lesson. The browser loads every module with its own request, and it cannot start a module before its imports arrive:
 
 \`\`\`
-dev      : request → transform → cache        (on demand)
-build    : entry → graph → transform → bundle (once)
-HMR      : change → patch the affected module
+index.html → main.js → paint.js → buffer.js
+                    → render.js → palette.js
 \`\`\`
 
-That is what Vite gives you: an extremely fast development server and a production build pipeline — today built on Rolldown — on top of the module system you just learned to reason about.`,
-	task: `1. Press **Dev: request main.js twice**. The first transform is paid once; the second request is a cache hit.
-2. Press **Dev: edit paint.js** and watch HMR patch only the module that changed — no full reload.
-3. Press **Build** and count how much work is done once, up front, for the whole graph.
-4. Compare "work done" in development vs production.
-5. In your own project, open \`package.json\`: map each script (\`dev\`, \`build\`, \`preview\`) to one of the pipelines above.`,
-	concept: `**Dev server vs build** — the dev server transforms modules on demand and patches changes in place; the build transforms the whole graph once and emits optimised static assets.`,
-	whyItMatters: `This is the last piece of the tooling bridge: you now know what \`npm run dev\` and \`npm run build\` actually do, why HMR feels instant, and why production assets look so different from your source files.`,
+Five files, five round trips. On a fast local server you do not notice; on a real network the **waterfall** is the first thing a user feels.
+
+There is a tool for exactly this. **esbuild** takes one entry point, follows the imports and writes a single file:
+
+\`\`\`
+npx esbuild src/main.js --bundle --outfile=dist/bundle.js --format=esm
+\`\`\`
+
+It is not magic — it does the three things you have already seen by hand: read the dependency graph, resolve the imports, emit the modules in dependency order. It just does them automatically, and fast. Ten lines of script replace the whole ceremony:
+
+\`\`\`js
+// build.mjs
+import { build } from 'esbuild';
+
+await build({
+  entryPoints: ['src/main.js'],
+  bundle: true,
+  format: 'esm',
+  minify: true,
+  outfile: 'dist/bundle.js'
+});
+\`\`\`
+
+This lesson is the bridge. You bundle the project with the tool, watch the requests drop, and then notice the part esbuild does **not** solve: you still have to run it after every change. That is the door the next lesson walks through.`,
+	task: `1. In your project: \`npm install --save-dev esbuild\` (or \`pnpm add -D esbuild\`).
+2. Create \`build.mjs\` with the ten-line script above, and add \`"build": "node build.mjs"\` to your \`package.json\` scripts.
+3. Run \`npm run build\` and look at the size of \`dist/bundle.js\`.
+4. Change \`index.html\` to load only that file, then open the **Network** tab: the requests drop from five to one.
+5. Press **Run esbuild** in this page to see the same transformation, and read the report: what did bundling *not* fix?`,
+	concept: `**Bundling** — walking the import graph from an entry point and emitting a single file. The graph is the same one from the previous lessons; what changes is who executes the walk: a tool you install, instead of code you write.`,
+	whyItMatters: `The waterfall is a deployment problem, not a code problem, and bundling is the standard answer. But a bundler you have to run by hand is another chore: edit, run, refresh, repeat. That missing piece — automation plus instant feedback — is exactly what the next lesson adds.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -32,13 +50,22 @@ That is what Vite gives you: an extremely fast development server and a producti
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Why Vite? — dev server, HMR and build</h3>
-  <div id="controls">
-    <button id="dev-btn">Dev: request main.js twice</button>
-    <button id="hmr-btn">Dev: edit paint.js</button>
-    <button id="build-btn">Build</button>
+  <h3>Pixel Art Editor — what esbuild does with the graph</h3>
+  <div id="toolbar">
+    <button id="before-btn">Show the waterfall</button>
+    <button id="bundle-btn">Run esbuild</button>
   </div>
-  <pre id="report">Pick a pipeline to run.</pre>
+  <div id="panels">
+    <section class="panel">
+      <h4>Source modules</h4>
+      <ul id="graph"></ul>
+    </section>
+    <section class="panel">
+      <h4>esbuild output</h4>
+      <pre id="bundle">Press Run esbuild.</pre>
+    </section>
+  </div>
+  <p id="report">Five modules, five requests. Press Run esbuild.</p>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -54,8 +81,8 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-#dev-btn, #hmr-btn, #build-btn {
+#toolbar { display: flex; gap: 8px; }
+#before-btn, #bundle-btn {
   background: #2a2a44;
   color: #e0e0e0;
   border: 1px solid #3a3a5c;
@@ -64,96 +91,120 @@ h3 { font-size: 14px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#dev-btn:hover, #hmr-btn:hover, #build-btn:hover { border-color: #8b8bcc; }
-#report {
+#before-btn:hover, #bundle-btn:hover { border-color: #8b8bcc; }
+#panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 720px;
+  max-width: 100%;
+}
+.panel {
   background: #111122;
   border: 1px solid #2a2a44;
-  border-radius: 6px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 200px;
+}
+.panel h4 {
+  margin-bottom: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8888aa;
+}
+#graph { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.module {
+  font-family: monospace;
+  font-size: 12px;
+  color: #b0b0c8;
+  border-left: 3px solid #3a3a5c;
+  padding-left: 8px;
+}
+#bundle {
   font-family: monospace;
   font-size: 12px;
   line-height: 1.7;
   color: #b0b0c8;
-  white-space: pre;
-  min-width: 520px;
-  min-height: 220px;
+  white-space: pre-wrap;
+}
+#report {
+  color: #8888aa;
+  font-size: 13px;
+  text-align: center;
+  white-space: pre-line;
+  min-height: 56px;
+  max-width: 660px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 20: Why Vite?
+		javascript: `// Pixel Art Editor — Lesson 20: El Puente de esbuild
 
+const graphEl = document.getElementById("graph");
+const bundleEl = document.getElementById("bundle");
 const reportEl = document.getElementById("report");
 
-const MODULES = ["main.js", "paint.js", "buffer.js", "render.js", "history.js"];
-const TRANSFORM_MS = 30;
+// The same modules from the previous lesson — already in dependency order,
+// which is the order esbuild emits them in. We do not resolve the graph here:
+// that is exactly the part the tool does for us.
+const MODULES = [
+  { file: "src/buffer.js", bytes: 190, imports: [] },
+  { file: "src/palette.js", bytes: 160, imports: [] },
+  { file: "src/paint.js", bytes: 310, imports: ["src/buffer.js"] },
+  { file: "src/render.js", bytes: 280, imports: ["src/palette.js"] },
+  { file: "src/main.js", bytes: 420, imports: ["src/paint.js", "src/render.js"] }
+];
 
-// ── Dev server: transform on demand, then cache ──
-const transformCache = new Map();
-let transforms = 0;
+const COMMAND = "npx esbuild src/main.js --bundle --outfile=dist/bundle.js --format=esm --minify";
 
-function requestModule(name) {
-  if (transformCache.has(name)) {
-    return { name, cached: true, ms: 0 };
-  }
-  transformCache.set(name, true);
-  transforms++;
-  return { name, cached: false, ms: TRANSFORM_MS };
+function totalBytes() {
+  return MODULES.reduce((sum, module) => sum + module.bytes, 0);
 }
 
-document.getElementById("dev-btn").addEventListener("click", () => {
-  const first = requestModule("main.js");
-  const second = requestModule("main.js");
+// ── Before: one request per module ──
+function showWaterfall() {
+  graphEl.innerHTML = "";
 
-  reportEl.textContent =
-    "Dev server (transform on demand)\\n\\n" +
-    "request main.js  → " + (first.cached ? "cache" : "transform " + first.ms + " ms") + "\\n" +
-    "request main.js  → " + (second.cached ? "cache hit (0 ms)" : "transform") + "\\n\\n" +
-    "modules transformed since start: " + transforms + "\\n" +
-    "the dev server never bundles: it answers exactly\\n" +
-    "what the browser asks for, once.";
-
-  console.log("dev requests: transform", first.ms, "ms, then cache");
-});
-
-// ── HMR: patch only the module that changed ──
-document.getElementById("hmr-btn").addEventListener("click", () => {
-  transformCache.delete("paint.js");
-  const patch = requestModule("paint.js");
-
-  reportEl.textContent =
-    "Hot Module Replacement\\n\\n" +
-    "edit paint.js    → invalidate cache\\n" +
-    "transform        → " + patch.ms + " ms\\n" +
-    "send patch       → only paint.js\\n" +
-    "other modules    → untouched\\n\\n" +
-    "modules transformed since start: " + transforms + "\\n" +
-    "no full reload, no re-running the whole graph.";
-
-  console.log("HMR patched paint.js in", patch.ms, "ms");
-});
-
-// ── Build: the whole graph, once ──
-document.getElementById("build-btn").addEventListener("click", () => {
-  const start = performance.now();
-  let total = 0;
-
-  for (const name of MODULES) {
-    requestModule(name);
-    total += TRANSFORM_MS;
+  for (const module of MODULES) {
+    const item = document.createElement("li");
+    item.className = "module";
+    item.textContent =
+      module.file +
+      (module.imports.length > 0 ? "  →  " + module.imports.join(", ") : "") +
+      "   (" + module.bytes + " B)";
+    graphEl.appendChild(item);
   }
 
-  const graph = total + 120; // bundling + minifying the graph
-  const wall = performance.now() - start;
+  reportEl.textContent =
+    MODULES.length + " modules · " + totalBytes() + " bytes of source\\n" +
+    "the browser needs one request per module";
+
+  console.log("source:", MODULES.length, "modules,", totalBytes(), "bytes");
+}
+
+// ── After: one file, produced by esbuild ──
+function runEsbuild() {
+  const sourceBytes = totalBytes();
+  const minifiedBytes = Math.round(sourceBytes * 0.62);
+
+  bundleEl.textContent =
+    "$ " + COMMAND + "\\n\\n" +
+    "  dist/bundle.js   " + minifiedBytes + " B (minified)\\n\\n" +
+    MODULES.map((module, index) => "  // " + (index + 1) + ". " + module.file).join("\\n") +
+    "\\n\\n  → 1 file · 1 request";
 
   reportEl.textContent =
-    "Production build (once)\\n\\n" +
-    MODULES.map((name) => "transform " + name).join("\\n") + "\\n" +
-    "bundle + minify\\n" +
-    "emit assets with hashes\\n\\n" +
-    "modules transformed: " + MODULES.length + "\\n" +
-    "work done up front: " + graph + " ms (simulated)\\n" +
-    "wall time in this page: " + wall.toFixed(1) + " ms\\n\\n" +
-    "output: dist/assets/index-8f3a1c.js";
+    "requests: " + MODULES.length + " → 1\\n" +
+    "bytes: " + sourceBytes + " → " + minifiedBytes + " (minified)\\n\\n" +
+    "what bundling does not fix: you still have to run it\\n" +
+    "after every change — that is the next lesson";
 
-  console.log("build: transformed", MODULES.length, "modules, bundled once");
-});`
+  console.log("esbuild:", MODULES.length, "requests → 1,", sourceBytes, "→", minifiedBytes, "bytes");
+  console.log("run it yourself with:", COMMAND);
+}
+
+document.getElementById("before-btn").addEventListener("click", showWaterfall);
+document.getElementById("bundle-btn").addEventListener("click", runEsbuild);
+
+showWaterfall();
+console.log("esbuild bridge ready — bundle the project with the real tool");`
 	}
 };

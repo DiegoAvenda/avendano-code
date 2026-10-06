@@ -1,4 +1,4 @@
-// Lesson 3 — Make Decisions
+// Pixel Art Editor — Lesson 3: Make Decisions
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 3,

@@ -1,4 +1,4 @@
-// Lesson 1 — Your First Pixel
+// Pixel Art Editor — Lesson 1: Your First Pixel
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 1,

@@ -1,29 +1,36 @@
-// Diagram Builder — Lesson 37: Project Close — Definition of Done
+// Diagram Builder — Lesson 37: The Canvas Needs a Second Representation
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 37,
-	title: 'Project Close: Definition of Done',
-	description: `The same checklist that closed the pixel editor closes this project — that is the point of a fixed list. What changes is the evidence, because this is a different application:
+	title: 'The Canvas Needs a Second Representation',
+	description: `Canvas is perfect for drawing and terrible for accessibility: a bitmap has no nodes, no names and no focus. A screen reader cannot read a drawing.
+
+The answer is not to throw Canvas away. It is to accept that **one state can have two representations**:
 
 \`\`\`
-1. Reproducible        Vite installs, dev server and build both run
-2. Tests               the structures have an invariant suite
-3. Static quality      TypeScript reports no errors
-4. Measurement         hit-testing has numbers at 100 / 1 000 / 5 000 nodes
-5. Resource audit      listeners and DOM nodes are released on destroy
-6. Decisions           why a Map, why a grid, why union-find (and its limit)
+            Diagram Model
+                  │
+        ┌─────────┴─────────┐
+        ↓                   ↓
+     Canvas                DOM
+    visual                semantic
 \`\`\`
 
-Two of those items would have been meaningless in the previous project: **TypeScript with no errors** closes the TypeScript bridge, and **the measured hit-testing** is the evidence that the spatial grid was the right answer.
+The Canvas shows the diagram. The DOM layer — real, focusable buttons positioned over the shapes — exposes the same model to the accessibility tree:
 
-That is how a fixed checklist stays useful: the questions are always the same, the evidence is always about this project.`,
-	task: `1. Press **Run the checklist** — it runs the structure invariants, a real hit-test measurement and a resource audit.
-2. Read the measurement: the grid is compared against a linear scan over the current node count.
-3. Mark the manual items (build, types, decisions, keyboard) and run again.
-4. Ask which item would be hardest to demonstrate honestly in your own project.
-5. Compare with the closing report of the pixel editor (Lesson 29): same list, different evidence.`,
-	concept: `**The same Definition of Done applied to a different project** — the checklist is invariant, the evidence is project-specific, and the standard rises with the stack.`,
-	whyItMatters: `Closing a module this way turns "I finished the tutorial" into "here is the evidence that this is finished". It also sets up what comes next: in the React module the same six questions will ask for component tests, effect cleanup and render measurements — the thread moves forward, the standard moves up, the list does not change.`,
+- **semantic HTML** (\`<button>\`, not a \`<div>\` with a click handler)
+- **focus management** so <kbd>Tab</kbd> reaches the diagram and arrows move between nodes
+- **ARIA** so each node announces its name and whether it is selected
+- an **\`aria-live\` region** that narrates the selection
+
+Both layers read the same model. Neither owns it.`,
+	task: `1. Turn the **Accessibility layer** on: the nodes become real buttons over the canvas.
+2. Press <kbd>Tab</kbd> to reach the diagram, then move between nodes with the arrow keys.
+3. Watch the live region: every move is announced, with the node's name and position.
+4. Press <kbd>Enter</kbd> to select — the Canvas and the DOM layer update together.
+5. Open DevTools → Accessibility on a node and read what the browser exposes. Then turn the layer off and try again: the diagram disappears from the tree.`,
+	concept: `**Two representations of one state** — a visual layer (Canvas) for the picture and a semantic layer (DOM + ARIA) for focus, keyboard and screen readers, both projected from the same model.`,
+	whyItMatters: `Accessibility is not a coat of paint applied at the end: it is a second representation of your data, and it only works if the model — not the drawing — is the source of truth. This is the same lesson as "model before rendering", one level deeper.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -33,17 +40,16 @@ That is how a fixed checklist stays useful: the questions are always the same, t
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Diagram Builder — Definition of Done</h3>
-  <div id="checklist">
-    <label class="check-row"><input type="checkbox" id="check-build" /> Vite dev server and build both run</label>
-    <label class="check-row"><input type="checkbox" id="check-types" /> TypeScript reports no errors</label>
-    <label class="check-row"><input type="checkbox" id="check-docs" /> Why a Map, a grid and union-find (and its limit) are documented</label>
-    <label class="check-row"><input type="checkbox" id="check-a11y" /> The diagram is reachable and operable with the keyboard</label>
-  </div>
+  <h3>Diagram Builder — a visual layer and a semantic layer</h3>
   <div id="toolbar">
-    <button id="run-btn">Run the checklist</button>
+    <label id="toggle"><input type="checkbox" id="layer-toggle" checked /> Accessibility layer</label>
+    <span id="status">Focus the diagram and use the arrow keys</span>
   </div>
-  <pre id="report">Run the checklist to see what is still open.</pre>
+  <div id="stage">
+    <canvas id="canvas"></canvas>
+    <div id="overlay"></div>
+  </div>
+  <p id="live" aria-live="polite">No node selected.</p>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -55,205 +61,190 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
+  padding: 16px;
   gap: 12px;
 }
 h3 { font-size: 13px; opacity: 0.7; }
-#checklist {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 560px;
+#toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+#toggle { color: #8888aa; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+#status { color: #8888aa; font-size: 12px; }
+#stage {
+  position: relative;
+  width: 640px;
   max-width: 100%;
 }
-.check-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #b0b0c8;
-  cursor: pointer;
-}
-#run-btn {
-  background: #2a2a44;
-  color: #e8e8f0;
-  border: 1px solid #3a3a5c;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 13px;
-  cursor: pointer;
-}
-#run-btn:hover { border-color: #8b8bcc; }
-#report {
-  background: #111122;
+#canvas {
+  display: block;
+  width: 100%;
+  background: #0d0d1a;
   border: 1px solid #2a2a44;
-  border-radius: 6px;
-  padding: 16px;
-  font-family: monospace;
-  font-size: 12.5px;
-  line-height: 1.8;
-  color: #b0b0c8;
-  white-space: pre-wrap;
-  width: 660px;
-  max-width: 100%;
-  min-height: 260px;
-}`,
-		javascript: `// Diagram Builder — Lesson 37: Project Close: Definition of Done
+  border-radius: 8px;
+}
+#overlay { position: absolute; inset: 0; }
+.node-button {
+  position: absolute;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: transparent;
+  cursor: pointer;
+}
+.node-button:focus-visible {
+  outline: none;
+  border-color: #ffd166;
+  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.35);
+}
+.node-button.selected { border-color: #8b8bcc; }
+#live { color: #b0b0c8; font-size: 13px; min-height: 20px; }`,
+		javascript: `// Diagram Builder — Lesson 37: The Canvas Needs a Second Representation
 
-const reportEl = document.getElementById("report");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const overlay = document.getElementById("overlay");
+const liveEl = document.getElementById("live");
+const statusEl = document.getElementById("status");
 
-// ── A model small enough to check in one page ──
-const CELL = 64;
-const NODES = Array.from({ length: 300 }, (_, index) => ({
-  id: "n" + index,
-  x: (index * 97) % 600,
-  y: (index * 53) % 340
-}));
+canvas.width = 640;
+canvas.height = 360;
 
-function cellKey(x, y) {
-  return Math.floor(x / CELL) + ":" + Math.floor(y / CELL);
+const model = {
+  nodes: [
+    { id: "n1", x: 50, y: 50, width: 150, height: 56, label: "Start" },
+    { id: "n2", x: 300, y: 40, width: 150, height: 56, label: "Load data" },
+    { id: "n3", x: 160, y: 200, width: 150, height: 56, label: "Render" },
+    { id: "n4", x: 420, y: 210, width: 150, height: 56, label: "Save" }
+  ],
+  selection: null
+};
+
+const buttonByNode = new Map();
+
+// ── Visual layer ──
+function renderCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (const node of model.nodes) {
+    const selected = node.id === model.selection;
+    ctx.fillStyle = selected ? "#2b2b4d" : "#1e1e34";
+    ctx.strokeStyle = selected ? "#8b8bcc" : "#3a3a5c";
+    ctx.lineWidth = selected ? 3 : 1.5;
+    ctx.beginPath();
+    ctx.roundRect(node.x, node.y, node.width, node.height, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#e8e8f0";
+    ctx.font = "600 14px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(node.label, node.x + node.width / 2, node.y + node.height / 2);
+  }
 }
 
-function buildGrid() {
-  const grid = new Map();
-  for (const node of NODES) {
-    const key = cellKey(node.x, node.y);
-    if (!grid.has(key)) grid.set(key, []);
-    grid.get(key).push(node);
+// ── Semantic layer: the same model, as focusable buttons ──
+function buildDomLayer() {
+  overlay.innerHTML = "";
+  buttonByNode.clear();
+
+  for (const node of model.nodes) {
+    const button = document.createElement("button");
+    button.className = "node-button";
+    button.type = "button";
+    button.textContent = node.label;
+    button.setAttribute("aria-label", node.label + " (" + Math.round(node.x) + ", " + Math.round(node.y) + ")");
+    button.setAttribute("aria-pressed", String(node.id === model.selection));
+    button.dataset.nodeId = node.id;
+
+    // Percentages so the layer scales with the canvas
+    button.style.left = (node.x / canvas.width) * 100 + "%";
+    button.style.top = (node.y / canvas.height) * 100 + "%";
+    button.style.width = (node.width / canvas.width) * 100 + "%";
+    button.style.height = (node.height / canvas.height) * 100 + "%";
+
+    button.addEventListener("click", () => select(node.id, button));
+    button.addEventListener("keydown", (event) => moveFocus(event, node));
+
+    overlay.appendChild(button);
+    buttonByNode.set(node.id, button);
   }
-  return grid;
 }
 
-// ── Check 1: the structures still satisfy their invariants ──
-function checkStructures() {
-  const grid = buildGrid();
-  let filed = 0;
+function syncDomLayer() {
+  for (const node of model.nodes) {
+    const button = buttonByNode.get(node.id);
+    if (button) button.setAttribute("aria-pressed", String(node.id === model.selection));
+  }
+}
 
-  for (const node of NODES) {
-    const bucket = grid.get(cellKey(node.x, node.y));
-    if (bucket && bucket.includes(node)) filed++;
+function select(id, button) {
+  const node = model.nodes.find((candidate) => candidate.id === id);
+  model.selection = id;
+
+  liveEl.textContent = "Selected " + node.label + " at " + node.x + ", " + node.y + ".";
+  statusEl.textContent = "Selected " + node.label;
+
+  if (button) {
+    button.classList.add("selected");
+    button.focus();
+  }
+  for (const [otherId, otherButton] of buttonByNode) {
+    if (otherId !== id) otherButton.classList.remove("selected");
   }
 
-  const parent = new Map(["a", "b", "c", "d"].map((id) => [id, id]));
-  function find(id) {
-    while (parent.get(id) !== id) id = parent.get(id);
-    return id;
-  }
-  parent.set("b", "a");
-  parent.set("d", "c");
+  renderCanvas();
+  syncDomLayer();
+}
 
-  const components = new Set([...parent.keys()].map((id) => find(id))).size;
-  const merged = find("b") === find("a");
-
-  return {
-    ok: filed === NODES.length && merged && components === 2,
-    detail:
-      filed + "/" + NODES.length + " nodes filed correctly · union-find gives " +
-      components + " components (expected 2)"
+// ── Keyboard navigation between nodes ──
+function moveFocus(event, from) {
+  const directions = {
+    ArrowRight: { dx: 1, dy: 0 },
+    ArrowLeft: { dx: -1, dy: 0 },
+    ArrowDown: { dx: 0, dy: 1 },
+    ArrowUp: { dx: 0, dy: -1 }
   };
-}
+  const direction = directions[event.key];
 
-// ── Check 2: the critical path has numbers (grid vs linear scan) ──
-function checkMeasurement() {
-  const grid = buildGrid();
-  const QUERIES = 3000;
-  let sink = 0;
+  if (!direction) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      select(from.id, buttonByNode.get(from.id));
+    }
+    return;
+  }
 
-  let start = performance.now();
-  for (let i = 0; i < QUERIES; i++) {
-    const x = (i * 13) % 640;
-    const y = (i * 29) % 360;
-    for (const node of NODES) {
-      if (x >= node.x && x <= node.x + 12 && y >= node.y && y <= node.y + 12) sink++;
+  event.preventDefault();
+
+  let best = null;
+  let bestScore = Infinity;
+
+  for (const candidate of model.nodes) {
+    if (candidate === from) continue;
+    const dx = candidate.x - from.x;
+    const dy = candidate.y - from.y;
+    const forward = dx * direction.dx + dy * direction.dy;
+    if (forward <= 0) continue;
+
+    const score = forward + Math.abs(dx * direction.dy - dy * direction.dx) * 2;
+    if (score < bestScore) {
+      bestScore = score;
+      best = candidate;
     }
   }
-  const linearMs = performance.now() - start;
 
-  start = performance.now();
-  for (let i = 0; i < QUERIES; i++) {
-    const x = (i * 13) % 640;
-    const y = (i * 29) % 360;
-    const bucket = grid.get(cellKey(x, y)) || [];
-    for (const node of bucket) {
-      if (x >= node.x && x <= node.x + 12 && y >= node.y && y <= node.y + 12) sink++;
-    }
-  }
-  const gridMs = performance.now() - start;
-
-  const speedup = gridMs > 0 ? Math.round(linearMs / gridMs) + "x" : "more than 1000x";
-  return {
-    ok: Number.isFinite(linearMs) && Number.isFinite(gridMs),
-    detail:
-      QUERIES.toLocaleString() + " hit-tests over " + NODES.length + " nodes: linear " +
-      linearMs.toFixed(1) + " ms vs grid " + gridMs.toFixed(1) + " ms (" + speedup + ")"
-  };
+  if (best) buttonByNode.get(best.id).focus();
 }
 
-// ── Check 3: the resource audit from the memory lesson ──
-const live = { listeners: 0, panels: 0 };
-
-function snapshot() {
-  return JSON.stringify(live);
-}
-
-function mountDiagramPanel() {
-  const controller = new AbortController();
-  window.addEventListener("resize", () => {}, { signal: controller.signal });
-  live.listeners++;
-  live.panels++;
-
-  return {
-    destroy() {
-      controller.abort();
-      live.listeners--;
-      live.panels--;
-    }
-  };
-}
-
-function checkResources() {
-  const before = snapshot();
-  mountDiagramPanel().destroy();
-  const after = snapshot();
-  return {
-    ok: before === after,
-    detail: before === after ? "mount/unmount leaves nothing behind" : "resources survived destroy()"
-  };
-}
-
-// ── Manual items ──
-const MANUAL = [
-  { id: "check-build", label: "Dev server and production build both run" },
-  { id: "check-types", label: "TypeScript reports no errors" },
-  { id: "check-docs", label: "Structural decisions documented" },
-  { id: "check-a11y", label: "Diagram operable with the keyboard" }
-];
-
-document.getElementById("run-btn").addEventListener("click", () => {
-  const results = [
-    { label: "Structures", ...checkStructures() },
-    { label: "Measurement", ...checkMeasurement() },
-    { label: "Resource audit", ...checkResources() }
-  ];
-
-  for (const item of MANUAL) {
-    const checked = document.getElementById(item.id).checked;
-    results.push({ label: item.label, ok: checked, detail: checked ? "marked" : "not marked yet" });
-  }
-
-  const done = results.filter((result) => result.ok).length;
-  const lines = results.map(
-    (result) => (result.ok ? "✓ " : "✗ ") + result.label + " — " + result.detail
-  );
-
-  reportEl.textContent =
-    lines.join("\\n") + "\\n\\n" +
-    done + " of " + results.length + " checks pass — " +
-    (done === results.length ? "DONE" : "NOT DONE");
-
-  console.log("Diagram Definition of Done:", done + "/" + results.length);
+document.getElementById("layer-toggle").addEventListener("change", (event) => {
+  overlay.style.display = event.target.checked ? "block" : "none";
+  statusEl.textContent = event.target.checked
+    ? "Accessibility layer on"
+    : "Accessibility layer off — the diagram is no longer in the accessibility tree";
+  liveEl.textContent = event.target.checked ? "Diagram exposed to assistive technology." : "Diagram hidden from assistive technology.";
 });
 
-console.log("Checklist ready for the diagram project");`
+buildDomLayer();
+renderCanvas();
+console.log("Two representations ready:", model.nodes.length, "nodes");`
 	}
 };

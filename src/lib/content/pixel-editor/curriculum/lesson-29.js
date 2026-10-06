@@ -1,29 +1,41 @@
-// Pixel Art Editor — Lesson 29: Project Close — Definition of Done
+// Pixel Art Editor — Lesson 29: Memory I: Lifetime & Cleanup
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 29,
-	title: 'Project Close: Definition of Done',
-	description: `A project does not end when the last feature works. It ends when you can answer, with evidence, a short list of questions. That list is the same for every project in this course:
+	title: 'Memory I: Lifetime & Cleanup',
+	description: `This editor has been creating resources since Lesson 8, and we never asked who releases them:
 
 \`\`\`
-1. Reproducible        it installs and runs from a clean checkout
-2. Tests               the core logic is covered and green
-3. Static quality      lint and types pass
-4. Measurement         the critical path has real numbers
-5. Resource audit      listeners, timers, DOM nodes are released
-6. Decisions           the README explains the trade-offs
+object created
+      ↓
+resource attached   (a listener, a timer, an interval, a DOM node)
+      ↓
+object removed from the page
+      ↓
+resource still alive
+      ↓
+memory leak
 \`\`\`
 
-Some of those can be checked by a machine, and this lesson automates exactly those: it runs the tests from Lesson 26, the resource audit from Lesson 28, and a real measurement. The rest are judgements — you mark them, but the report tells you which ones are still open.
+The real code is already full of these moments:
 
-The interesting part is not the checklist itself. It is that **the same checklist closes every module**, and what changes is the standard you apply. In the React module, "resource audit" will mean effects and subscriptions; in Next.js, caches and server lifetimes. The list stays; the bar rises.`,
-	task: `1. Press **Run the checklist** and read the report — the three automatic checks run for real.
-2. Look at \`checkResources\`: it mounts a panel, destroys it, and compares the resource counts before and after.
-3. Mark the manual items one by one and run again: the verdict only changes when every item passes.
-4. Find a manual item you cannot honestly mark yet — that is your next task, not a formality.
-5. Apply the same list to a project of your own and see which items you cannot answer with evidence.`,
-	concept: `**Definition of Done** — a short, fixed checklist that every project must satisfy before it is considered finished, where each item is answered with evidence (a test, a number, an audit) rather than with an opinion.`,
-	whyItMatters: `This is the difference between "it works on my machine" and "I can show you why it is finished". And because the list is fixed and short, it travels: the same six questions will close the diagram builder, the React app and the Next.js app, each time with a higher standard.`,
+| Where | Resource | Who should release it |
+|---|---|---|
+| \`Playground.svelte\` | the debounced save timer | \`onDestroy\`, flushing the pending save |
+| \`Preview.svelte\` | \`window.addEventListener("message")\` | the cleanup returned by \`onMount\` |
+| \`CodeEditor.svelte\` | the CodeMirror view | \`onDestroy\` → \`view.destroy()\` |
+| \`Console.svelte\` | the auto-scroll effect | the effect's teardown |
+
+None of that is exotic. It is the same pattern every time: **the resource's lifetime must not outlive the object that created it**, and something has to own the release.
+
+This lesson audits a small but faithful model of those resources: a panel that subscribes to \`resize\`, schedules a save, starts an interval and appends a DOM node. Half of it cleans up; half of it does not. The tests from the previous lesson tell us which half is which.`,
+	task: `1. Press **Mount + unmount** and read the live counts: listeners, timers, intervals and DOM nodes all return to their previous values.
+2. Press **Mount without cleanup** and compare — the numbers only go up.
+3. Press **Run the audit**: a test mounts and unmounts a panel and asserts that nothing is left behind.
+4. Press **Audit the leaky panel** to see the same test fail, and read which resource survived.
+5. Now look at your own project: name one resource that has no owner. (In this editor there is at least one: the pending save timer, which is why \`onDestroy(flushSave)\` exists.)`,
+	concept: `**Resource lifetime** — every resource attached to an object (listener, timer, interval, DOM node) must be released when that object dies, and the cleanest way is \`AbortController\`: one owner, one \`abort()\`.`,
+	whyItMatters: `A leak is invisible: nothing throws, nothing logs, the app keeps working — and the memory graph keeps growing. Testing it is possible exactly because the previous lesson taught us to assert on cleanup, and fixing it is a design decision: decide who owns each resource, then make the release part of the object's contract.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -33,17 +45,15 @@ The interesting part is not the checklist itself. It is that **the same checklis
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Pixel Art Editor — Definition of Done</h3>
-  <div id="checklist">
-    <label class="check-row"><input type="checkbox" id="check-repro" /> Installs and runs from a clean checkout</label>
-    <label class="check-row"><input type="checkbox" id="check-lint" /> Lint and types are green</label>
-    <label class="check-row"><input type="checkbox" id="check-docs" /> Decisions and trade-offs documented</label>
-    <label class="check-row"><input type="checkbox" id="check-a11y" /> Main flow works with the keyboard</label>
-  </div>
+  <h3>Pixel Art Editor — who releases the resources?</h3>
   <div id="toolbar">
-    <button id="run-btn">Run the checklist</button>
+    <button id="mount-btn">Mount + unmount</button>
+    <button id="leak-btn">Mount without cleanup</button>
+    <button id="audit-btn">Run the audit</button>
+    <button id="audit-leak-btn">Audit the leaky panel</button>
   </div>
-  <pre id="report">Run the checklist to see what is still open.</pre>
+  <div id="stage"></div>
+  <pre id="report">Mount a panel to start.</pre>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -59,22 +69,8 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#checklist {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 520px;
-  max-width: 100%;
-}
-.check-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #b0b0c8;
-  cursor: pointer;
-}
-#run-btn {
+#toolbar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+#toolbar button {
   background: #2a2a44;
   color: #e0e0e0;
   border: 1px solid #3a3a5c;
@@ -83,7 +79,16 @@ h3 { font-size: 14px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#run-btn:hover { border-color: #8b8bcc; }
+#toolbar button:hover { border-color: #8b8bcc; }
+#stage { display: flex; gap: 8px; min-height: 44px; }
+.panel {
+  background: #161628;
+  border: 1px solid #2a2a44;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #b0b0c8;
+}
 #report {
   background: #111122;
   border: 1px solid #2a2a44;
@@ -94,117 +99,148 @@ h3 { font-size: 14px; opacity: 0.7; }
   line-height: 1.8;
   color: #b0b0c8;
   white-space: pre-wrap;
-  width: 620px;
+  width: 640px;
   max-width: 100%;
   min-height: 240px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 29: Project Close: Definition of Done
+		javascript: `// Pixel Art Editor — Lesson 29: Memory I: Lifetime & Cleanup
 
 const reportEl = document.getElementById("report");
+const stage = document.getElementById("stage");
 
-// ── Automatic check 1: the core logic still passes its tests ──
-function checkTests() {
-  let passed = 0;
-  let total = 0;
+// ── Our instrument: count every resource the editor creates ──
+const live = { listeners: 0, timers: 0, intervals: 0 };
 
-  function expectEqual(actual, expected) {
-    total++;
-    if (JSON.stringify(actual) === JSON.stringify(expected)) passed++;
-  }
-
-  const indexOf = (x, y, width) => y * width + x;
-  expectEqual(indexOf(0, 0, 4), 0);
-  expectEqual(indexOf(3, 0, 4), 3);
-  expectEqual(indexOf(0, 1, 4), 4);
-
+function snapshot() {
   return {
-    ok: passed === total,
-    detail: passed + "/" + total + " assertions pass"
+    listeners: live.listeners,
+    timers: live.timers,
+    intervals: live.intervals,
+    panels: stage.querySelectorAll(".panel").length
   };
 }
 
-// ── Automatic check 2: the resource audit from Lesson 28 ──
-const live = { listeners: 0, timers: 0 };
-
-function snapshot() {
-  return JSON.stringify(live);
+function describe(state) {
+  return (
+    "listeners: " + state.listeners +
+    " · timers: " + state.timers +
+    " · intervals: " + state.intervals +
+    " · panels: " + state.panels
+  );
 }
 
-function mountPanel() {
+// ── A panel with the same resources as the real editor ──
+function mountPanel({ cleanup = true } = {}) {
   const controller = new AbortController();
-  window.addEventListener("resize", () => {}, { signal: controller.signal });
+
+  // 1. a listener, like Preview.svelte listening for messages
+  const onResize = () => {};
+  window.addEventListener("resize", onResize, { signal: controller.signal });
   live.listeners++;
-  const timer = setTimeout(() => {}, 5000);
+
+  // 2. a debounced timer, like the one that saves the editor contents
+  const saveTimer = setTimeout(() => {}, 5000);
   live.timers++;
 
+  // 3. a repeating interval, like the FPS meter
+  const fpsInterval = setInterval(() => {}, 5000);
+  live.intervals++;
+
+  // 4. a DOM node, like the CodeMirror view
+  const element = document.createElement("div");
+  element.className = "panel";
+  element.textContent = cleanup ? "panel with cleanup" : "panel without cleanup";
+  stage.appendChild(element);
+
   return {
+    element,
     destroy() {
-      controller.abort();
-      clearTimeout(timer);
+      if (!cleanup) return; // ← the leak: the panel is gone, its resources are not
+
+      controller.abort();      // releases the listener
+      clearTimeout(saveTimer); // releases the timer
+      clearInterval(fpsInterval); // releases the interval
+      element.remove();        // releases the DOM node
+
       live.listeners--;
       live.timers--;
+      live.intervals--;
     }
   };
 }
 
-function checkResources() {
-  const before = snapshot();
-  mountPanel().destroy();
-  const after = snapshot();
+// ── The test harness from Lesson 26 ──
+let passed = 0;
+let failed = 0;
+let lines = [];
 
-  return {
-    ok: before === after,
-    detail: before === after ? "mount/unmount leaves nothing behind" : "resources survived destroy()"
-  };
-}
-
-// ── Automatic check 3: the critical path has real numbers ──
-function checkMeasurement() {
-  const ITERATIONS = 200000;
-  const start = performance.now();
-  let sink = 0;
-  for (let i = 0; i < ITERATIONS; i++) sink += i % 7;
-  const ms = performance.now() - start;
-
-  return {
-    ok: Number.isFinite(ms),
-    detail: ITERATIONS.toLocaleString() + " iterations in " + ms.toFixed(2) + " ms (sink " + sink + ")"
-  };
-}
-
-// ── Manual items: judgements the machine cannot make ──
-const MANUAL = [
-  { id: "check-repro", label: "Reproducible from a clean checkout" },
-  { id: "check-lint", label: "Lint and types pass" },
-  { id: "check-docs", label: "Decisions documented" },
-  { id: "check-a11y", label: "Main flow works with the keyboard" }
-];
-
-document.getElementById("run-btn").addEventListener("click", () => {
-  const results = [
-    { label: "Tests", ...checkTests() },
-    { label: "Resource audit", ...checkResources() },
-    { label: "Measurement", ...checkMeasurement() }
-  ];
-
-  for (const item of MANUAL) {
-    const checked = document.getElementById(item.id).checked;
-    results.push({ label: item.label, ok: checked, detail: checked ? "marked" : "not marked yet" });
+function test(name, fn) {
+  try {
+    fn();
+    passed++;
+    lines.push("✓ " + name);
+  } catch (error) {
+    failed++;
+    lines.push("✗ " + name + "\\n    " + error.message);
   }
+}
 
-  const done = results.filter((result) => result.ok).length;
-  const lines = results.map(
-    (result) => (result.ok ? "✓ " : "✗ ") + result.label + " — " + result.detail
-  );
+function expect(actual) {
+  return {
+    toEqual(expected) {
+      const got = JSON.stringify(actual);
+      const want = JSON.stringify(expected);
+      if (got !== want) throw new Error("expected " + want + ", received " + got);
+    }
+  };
+}
+
+function audit({ cleanup }) {
+  passed = 0;
+  failed = 0;
+  lines = [];
+
+  const before = snapshot();
+
+  test("a panel leaves no resources behind after destroy()", () => {
+    const panel = mountPanel({ cleanup });
+    panel.destroy();
+
+    if (!cleanup) {
+      // Simulate what a real unmount does: the object goes away.
+      panel.element.remove();
+    }
+
+    expect(snapshot()).toEqual(before);
+  });
 
   reportEl.textContent =
-    lines.join("\\n") + "\\n\\n" +
-    done + " of " + results.length + " checks pass — " +
-    (done === results.length ? "DONE" : "NOT DONE");
+    "before mount : " + describe(before) + "\\n" +
+    "after destroy: " + describe(snapshot()) + "\\n\\n" +
+    lines.join("\\n") + "\\n\\n" + passed + " passed, " + failed + " failed";
 
-  console.log("Definition of Done:", done + "/" + results.length);
+  console.log("audit (cleanup: " + cleanup + "):", passed, "passed,", failed, "failed");
+}
+
+document.getElementById("mount-btn").addEventListener("click", () => {
+  const panel = mountPanel();
+  reportEl.textContent = "mounted → " + describe(snapshot()) + "\\npress again after unmounting";
+  panel.destroy();
+  reportEl.textContent += "\\nunmounted → " + describe(snapshot());
 });
 
-console.log("Checklist ready — run it against the project you built");`
+document.getElementById("leak-btn").addEventListener("click", () => {
+  const panel = mountPanel({ cleanup: false });
+  panel.element.remove(); // the object disappears, the resources stay
+  reportEl.textContent =
+    "the panel is gone from the page, but look at the counters:\\n" + describe(snapshot()) +
+    "\\n\\nnothing threw and nothing logged. That is what a leak looks like.";
+});
+
+document.getElementById("audit-btn").addEventListener("click", () => audit({ cleanup: true }));
+document.getElementById("audit-leak-btn").addEventListener("click", () => audit({ cleanup: false }));
+
+reportEl.textContent = "starting state → " + describe(snapshot());
+console.log("Resource audit ready");`
 	}
 };

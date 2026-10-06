@@ -1,4 +1,4 @@
-// Lesson 2 — Give the Code a Job
+// Pixel Art Editor — Lesson 2: Give the Code a Job
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 2,

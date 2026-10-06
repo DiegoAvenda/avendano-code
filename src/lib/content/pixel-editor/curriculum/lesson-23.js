@@ -1,33 +1,40 @@
-// Lesson 23 — Add Types
+// Pixel Art Editor — Lesson 23: Contracts Without TypeScript
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 23,
-	title: 'Add Types',
-	description: `We documented the shape of a node, and we wrote guards — by hand, everywhere. The open question from the previous lesson was: **can the computer check this for us before the program runs?**
+	title: 'Contracts Without TypeScript',
+	description: `We know the failures now, so let's try to catch them **without** changing languages. JavaScript already gives us a few tools:
 
-That is exactly what TypeScript does. It is a static type checker for JavaScript: you describe the shape once, and the tool checks every use of it without executing anything.
+- **conventions** — "a node always has an id, an x and a y"
+- **runtime validations** — check the value before using it and throw a clear error
+- **comments and JSDoc** — document what a function expects, so the editor can show it
 
 \`\`\`
-interface Node {
-  id: string;
-  x: number;
-  y: number;
-  label: string;
+/**
+ * @param {{ id: string, x: number, y: number, label: string }} node
+ */
+function moveNode(node, x, y) { … }
+\`\`\`
+
+This genuinely works. But look at what it costs:
+
+\`\`\`
+function moveNode(node, x, y) {
+  assertNode(node);
+  assertNumber(x);
+  assertNumber(y);
+  // …now the actual three lines of logic
 }
-
-function moveNode(node: Node, x: number, y: number): Node { … }
 \`\`\`
 
-With that contract in place, the editor can mark \`node.lable\` **before you run the code**, and \`moveNode(node, "100", 200)\` is not a runtime mystery any more: it is an error pointing at the argument.
-
-The important part is the direction of the work: we did not start from the syntax. We started from a real failure, tried JavaScript's own tools, and only then added types.`,
-	task: `1. Press **Check, then run**. The checker runs *before* any code executes.
-2. Compare the output with the previous two lessons: same three mistakes, now reported as static errors with the property or argument named.
-3. Look at \`checkShape\` — it is a miniature version of what a type checker does with \`interface Node\`.
-4. Press **Skip the check** to see the program run anyway, with the failures we already know.
-5. Ask: which of the two runs would you rather debug?`,
-	concept: `**Static type checking** — describing the shape of values with annotations and interfaces so a tool can find type errors before the program runs, instead of discovering them later at runtime.`,
-	whyItMatters: `Types are not extra syntax you must memorise: they are the answer to a problem you have now experienced twice. And because they are checked statically, they can be verified in CI, in your editor and before a deploy — the failure never reaches the user.`,
+The contracts are maintained by hand, by us, everywhere, forever. Every new field means updating the validators, the JSDoc and the tests — and nothing forces a caller to read any of it.`,
+	task: `1. Read the three contract tools: the JSDoc annotation, \`assertNumber\` and \`assertNode\`.
+2. Press **Run with contracts** — the same three mistakes from the previous lesson are now caught with a message that names the cause.
+3. Read the error messages: they point at the argument that was wrong.
+4. Count the lines: contracts vs actual logic.
+5. Now change the node shape (add \`label\` as required) and see how many places you have to update by hand.`,
+	concept: `**Manual contracts** — JSDoc plus runtime guards make expectations explicit and catch bad values early, at the price of writing and maintaining the checks yourself.`,
+	whyItMatters: `This is the best JavaScript can do without a compiler's help, and it already improves the situation. The remaining discomfort is the point: the checks are written by hand, the documentation can drift from the code, and the computer still cannot prove that every caller respects the contract. That is the question the next lesson answers.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -37,12 +44,11 @@ The important part is the direction of the work: we did not start from the synta
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Add types — or at least check them</h3>
+  <h3>Contracts without TypeScript</h3>
   <div id="controls">
-    <button id="check-btn">Check, then run</button>
-    <button id="skip-btn">Skip the check</button>
+    <button id="run-btn">Run with contracts</button>
   </div>
-  <pre id="report">Press a button to compare static checks with runtime failures.</pre>
+  <pre id="report">Press Run to send the same bad values, now through guards.</pre>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -58,8 +64,7 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#controls { display: flex; gap: 8px; }
-#check-btn, #skip-btn {
+#run-btn {
   background: #2a2a44;
   color: #e0e0e0;
   border: 1px solid #3a3a5c;
@@ -68,7 +73,7 @@ h3 { font-size: 14px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#check-btn:hover, #skip-btn:hover { border-color: #8b8bcc; }
+#run-btn:hover { border-color: #8b8bcc; }
 #report {
   background: #111122;
   border: 1px solid #2a2a44;
@@ -79,79 +84,77 @@ h3 { font-size: 14px; opacity: 0.7; }
   line-height: 1.8;
   color: #b0b0c8;
   white-space: pre;
-  min-width: 620px;
+  min-width: 600px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 23: Add Types
+		javascript: `// Pixel Art Editor — Lesson 23: Contracts Without TypeScript
 
 const reportEl = document.getElementById("report");
 
-// A miniature type checker: the shape of "Node", described once.
-const NODE_SHAPE = {
-  id: "string",
-  x: "number",
-  y: "number",
-  label: "string"
-};
-
-function checkShape(value, shape, name) {
-  const errors = [];
-
-  for (const [key, expected] of Object.entries(shape)) {
-    const actual = typeof value[key];
-    if (actual !== expected) {
-      errors.push(name + "." + key + " should be " + expected + ", found " + actual);
-    }
+// ── The contract, written by hand ──
+function assertNumber(value, name) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    throw new TypeError(name + " must be a number, received " + JSON.stringify(value));
   }
-
-  for (const key of Object.keys(value)) {
-    if (!(key in shape)) {
-      errors.push(name + "." + key + " does not exist on type Node");
-    }
-  }
-
-  return errors;
 }
 
-// The program we already wrote twice — with one line that reads a typo.
-function program(node) {
-  const lines = [];
-  lines.push("connectNode → " + node.id.toUpperCase());
-  lines.push("label → " + node.lable);
-  lines.push("distance → " + (node.x + 50));
-  return lines;
+function assertNode(value, name) {
+  if (value === null || typeof value !== "object") {
+    throw new TypeError(name + " must be an object");
+  }
+  if (typeof value.id !== "string") {
+    throw new TypeError(name + ".id must be a string");
+  }
+  assertNumber(value.x, name + ".x");
+  assertNumber(value.y, name + ".y");
 }
 
-const goodNode = { id: "a1", x: 100, y: 200, label: "Start" };
-const badNode = { id: "b2", x: "100", y: 200, lable: "Start" };
+function validateNode(value, name) {
+  if (typeof value.label !== "string") {
+    throw new TypeError(name + ".label must be a string");
+  }
+}
 
-document.getElementById("check-btn").addEventListener("click", () => {
-  const errors = [
-    ...checkShape(badNode, NODE_SHAPE, "node"),
-    "node.lable does not exist on type Node"
-  ];
+/**
+ * @param {{ id: string, x: number, y: number, label: string }} node
+ * @param {number} x
+ * @param {number} y
+ */
+function moveNode(node, x, y) {
+  assertNode(node, "node");
+  assertNumber(x, "x");
+  assertNumber(y, "y");
 
-  reportEl.textContent =
-    "1. static check (nothing has run yet)\\n\\n" +
-    errors.map((error) => "  ✗ " + error).join("\\n") +
-    "\\n\\n2. result\\n" +
-    "  compile failed — the bad program was never executed.";
+  node.x = x;
+  node.y = y;
+  return node;
+}
 
-  console.log("Static errors:", errors);
-});
+function guard(label, fn) {
+  try {
+    fn();
+    return label + "\\n  ok";
+  } catch (error) {
+    return label + "\\n  " + error.name + ": " + error.message;
+  }
+}
 
-document.getElementById("skip-btn").addEventListener("click", () => {
-  const output = program(badNode);
+document.getElementById("run-btn").addEventListener("click", () => {
+  const node = { id: "a1", x: 100, y: 200, label: "Start" };
+  const rows = [];
 
-  reportEl.textContent =
-    "1. static check skipped\\n\\n" +
-    "2. runtime\\n" +
-    output.map((line) => "  " + line).join("\\n") +
-    "\\n\\n  undefined, \\"10050\\" and a typo —\\n" +
-    "  exactly the failures from the previous lessons.";
+  rows.push(guard("moveNode(node, \\"100\\", 200)", () => moveNode(node, "100", 200)));
+  rows.push(guard("moveNode({ id: \\"b2\\", x: 10 }, 10, 50)", () =>
+    moveNode({ id: "b2", x: 10 }, 10, 50)
+  ));
+  rows.push(guard("validateNode({ id: \\"c3\\", x: 1, y: 2 })", () =>
+    validateNode({ id: "c3", x: 1, y: 2 }, "node")
+  ));
+  rows.push(guard("moveNode(node, 120, 240)  // valid", () => moveNode(node, 120, 240)));
 
-  console.log("Runtime output:", output);
-});
+  reportEl.textContent = rows.join("\\n\\n") +
+    "\\n\\ncontract code: 18 lines\\nlogic in moveNode: 3 lines";
 
-console.log("Checker ready for", Object.keys(NODE_SHAPE).join(", "));`
+  console.log("node after the valid call:", node);
+});`
 	}
 };

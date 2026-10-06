@@ -1,40 +1,39 @@
-// Lesson 22 — Contracts Without TypeScript
+// Pixel Art Editor — Lesson 22: JavaScript Starts Fighting Back
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 22,
-	title: 'Contracts Without TypeScript',
-	description: `We know the failures now, so let's try to catch them **without** changing languages. JavaScript already gives us a few tools:
-
-- **conventions** — "a node always has an id, an x and a y"
-- **runtime validations** — check the value before using it and throw a clear error
-- **comments and JSDoc** — document what a function expects, so the editor can show it
+	title: 'JavaScript Starts Fighting Back',
+	description: `The editor now has real data: a diagram node with an id, a position and a label.
 
 \`\`\`
-/**
- * @param {{ id: string, x: number, y: number, label: string }} node
- */
-function moveNode(node, x, y) { … }
+const node = { id: "a1", x: 100, y: 200, label: "Start" };
 \`\`\`
 
-This genuinely works. But look at what it costs:
+Several parts of the program use it:
 
 \`\`\`
-function moveNode(node, x, y) {
-  assertNode(node);
-  assertNumber(x);
-  assertNumber(y);
-  // …now the actual three lines of logic
-}
+function connectNode(node) { /* … */ }
+function moveNode(node, x, y) { /* … */ }
 \`\`\`
 
-The contracts are maintained by hand, by us, everywhere, forever. Every new field means updating the validators, the JSDoc and the tests — and nothing forces a caller to read any of it.`,
-	task: `1. Read the three contract tools: the JSDoc annotation, \`assertNumber\` and \`assertNode\`.
-2. Press **Run with contracts** — the same three mistakes from the previous lesson are now caught with a message that names the cause.
-3. Read the error messages: they point at the argument that was wrong.
-4. Count the lines: contracts vs actual logic.
-5. Now change the node shape (add \`label\` as required) and see how many places you have to update by hand.`,
-	concept: `**Manual contracts** — JSDoc plus runtime guards make expectations explicit and catch bad values early, at the price of writing and maintaining the checks yourself.`,
-	whyItMatters: `This is the best JavaScript can do without a compiler's help, and it already improves the situation. The remaining discomfort is the point: the checks are written by hand, the documentation can drift from the code, and the computer still cannot prove that every caller respects the contract. That is the question the next lesson answers.`,
+And then the mistakes start. They are not exotic; they are the ones everybody makes:
+
+\`\`\`
+node.lable              // a typo
+moveNode(node, "100", 200)   // a string where a number was expected
+moveNode({ id: "b2", x: 10 })  // a node without y
+\`\`\`
+
+JavaScript runs all three. Nothing crashes at the place where the mistake is. Instead the value travels through the program and the failure appears later — as \`undefined\`, as \`NaN\`, or as a number that quietly became a string.
+
+That delay is the real problem: the further the failure is from its cause, the harder it is to find.`,
+	task: `1. Press **Run the mistakes** and read the report — each row shows the call, the value it produced and when the problem surfaces.
+2. Find the three failure modes: a misspelled property, a value with the wrong type, and a missing property.
+3. Notice that nothing throws. The program keeps running with bad data.
+4. Add \`console.log(node)\` after each call to see how the object changed.
+5. Write down the question this leaves open: could the computer detect this *before* running the program?`,
+	concept: `**Runtime-only checking** — JavaScript validates values while the program runs, so a mismatch is discovered when the bad value is finally used, not where it was introduced.`,
+	whyItMatters: `This is not an argument against JavaScript; it is the description of a real limitation. Once you have felt the distance between cause and symptom, the next lessons have an obvious purpose: moving the detection earlier.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -44,11 +43,11 @@ The contracts are maintained by hand, by us, everywhere, forever. Every new fiel
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Contracts without TypeScript</h3>
+  <h3>JavaScript starts fighting back</h3>
   <div id="controls">
-    <button id="run-btn">Run with contracts</button>
+    <button id="run-btn">Run the mistakes</button>
   </div>
-  <pre id="report">Press Run to send the same bad values, now through guards.</pre>
+  <pre id="report">Press Run to send three bad values through the program.</pre>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -86,75 +85,66 @@ h3 { font-size: 14px; opacity: 0.7; }
   white-space: pre;
   min-width: 600px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 22: Contracts Without TypeScript
+		javascript: `// Pixel Art Editor — Lesson 22: JavaScript Starts Fighting Back
 
 const reportEl = document.getElementById("report");
 
-// ── The contract, written by hand ──
-function assertNumber(value, name) {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    throw new TypeError(name + " must be a number, received " + JSON.stringify(value));
-  }
+const node = { id: "a1", x: 100, y: 200, label: "Start" };
+
+function connectNode(target) {
+  return target.id.toUpperCase() + " connected at " + target.x + "," + target.y;
 }
 
-function assertNode(value, name) {
-  if (value === null || typeof value !== "object") {
-    throw new TypeError(name + " must be an object");
-  }
-  if (typeof value.id !== "string") {
-    throw new TypeError(name + ".id must be a string");
-  }
-  assertNumber(value.x, name + ".x");
-  assertNumber(value.y, name + ".y");
+function moveNode(target, x, y) {
+  target.x = x;
+  target.y = y;
+  return target;
 }
 
-function validateNode(value, name) {
-  if (typeof value.label !== "string") {
-    throw new TypeError(name + ".label must be a string");
-  }
-}
-
-/**
- * @param {{ id: string, x: number, y: number, label: string }} node
- * @param {number} x
- * @param {number} y
- */
-function moveNode(node, x, y) {
-  assertNode(node, "node");
-  assertNumber(x, "x");
-  assertNumber(y, "y");
-
-  node.x = x;
-  node.y = y;
-  return node;
-}
-
-function guard(label, fn) {
-  try {
-    fn();
-    return label + "\\n  ok";
-  } catch (error) {
-    return label + "\\n  " + error.name + ": " + error.message;
-  }
+function drawLink(from, to) {
+  // distance between two nodes
+  return Math.sqrt((to.x - from.x) ** 2 + (to.y - from.y) ** 2);
 }
 
 document.getElementById("run-btn").addEventListener("click", () => {
-  const node = { id: "a1", x: 100, y: 200, label: "Start" };
   const rows = [];
 
-  rows.push(guard("moveNode(node, \\"100\\", 200)", () => moveNode(node, "100", 200)));
-  rows.push(guard("moveNode({ id: \\"b2\\", x: 10 }, 10, 50)", () =>
-    moveNode({ id: "b2", x: 10 }, 10, 50)
-  ));
-  rows.push(guard("validateNode({ id: \\"c3\\", x: 1, y: 2 })", () =>
-    validateNode({ id: "c3", x: 1, y: 2 }, "node")
-  ));
-  rows.push(guard("moveNode(node, 120, 240)  // valid", () => moveNode(node, 120, 240)));
+  // 1. A typo in a property name
+  const typo = node.lable;
+  rows.push(
+    "node.lable\\n" +
+    "  value      : " + String(typo) + "\\n" +
+    "  problem    : undefined — no error, no warning\\n" +
+    "  surfaces   : when something finally reads .label"
+  );
+
+  // 2. The right value with the wrong type
+  moveNode(node, "100", 200);
+  const distance = drawLink(node, { x: 160, y: 200 });
+  rows.push(
+    "moveNode(node, \\"100\\", 200)\\n" +
+    "  node.x     : " + JSON.stringify(node.x) + "  (" + typeof node.x + ")\\n" +
+    "  node.x + 10: " + JSON.stringify(node.x + 10) + "\\n" +
+    "  distance   : " + distance + "\\n" +
+    "  problem    : the string travelled into the maths"
+  );
+
+  // 3. A node that is missing a property
+  const incomplete = { id: "b2", x: 10 };
+  moveNode(incomplete, 10, 50);
+  const gap = drawLink(incomplete, { x: 40, y: 90 });
+  rows.push(
+    "moveNode({ id: \\"b2\\", x: 10 }, 10, 50)\\n" +
+    "  node.y     : " + String(incomplete.y) + "\\n" +
+    "  distance   : " + gap + "\\n" +
+    "  problem    : NaN — a missing value became a number"
+  );
 
   reportEl.textContent = rows.join("\\n\\n") +
-    "\\n\\ncontract code: 18 lines\\nlogic in moveNode: 3 lines";
+    "\\n\\nthree mistakes, three delayed symptoms,\\nzero messages pointing at the cause.";
 
-  console.log("node after the valid call:", node);
+  console.log("node after the mistakes:", node);
+  console.log("NaN distance:", gap);
 });`
 	}
 };

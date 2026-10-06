@@ -1,4 +1,4 @@
-// Lesson 6 — Describe Things
+// Pixel Art Editor — Lesson 6: Describe Things
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 6,

@@ -1,40 +1,42 @@
-// Diagram Builder — Lesson 36: Memory Management
+// Diagram Builder — Lesson 36: Testing the Structures
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 36,
-	title: 'Memory Management',
-	description: `The last lesson of the module is about a failure that is invisible until it is expensive:
+	title: 'Testing the Structures',
+	description: `In Módulo 0 you wrote your own test harness: eleven lines, no dependencies, and it was the right tool for what it tested — pure functions like the index math or the ring buffer.
+
+These structures are a different story:
 
 \`\`\`
-object created
-      ↓
-resource attached   (a listener, a timer, a DOM node, a subscription)
-      ↓
-object removed from the model
-      ↓
-resource still alive
-      ↓
-memory leak
+Map            find a node by id            O(1)
+spatial grid   find nodes near a point      one bucket instead of all
+union-find     are these two connected?     near O(1)
 \`\`\`
 
-Nothing throws, nothing logs, the app keeps working — and the memory graph keeps growing. Editors are especially good at producing this failure, because they create and destroy nodes, listeners, references and DOM elements all day.
-
-The tool for listeners is \`AbortController\`. One controller can own many listeners, and a single \`abort()\` removes all of them:
+A wrong bucket key does not throw: it returns the wrong node, or none, and the canvas looks *almost* right. What you need are **invariants** — properties that must hold for every input:
 
 \`\`\`
-const controller = new AbortController();
-emitter.on("move", handler, { signal: controller.signal });
-controller.abort();   // handler is gone
+every node is filed under the cell that contains it
+find() of an unknown id returns undefined, never a wrong node
+after union(a, b): find(a) === find(b)
+after a rebuild, the component count matches a fresh computation
 \`\`\`
 
-Now the lifetime of the listeners is tied to the lifetime of the node that owns them. Cleanup stops being a list of rules to remember and becomes something you can measure.`,
-	task: `1. Press **Create and drop 500 nodes (leaky)** and read the live listener count — it never goes back down.
-2. Open DevTools → Memory, take a heap snapshot, and look for the handler functions that are still retained.
-3. Press **Cleanup with AbortController** and watch the count drop to zero.
-4. Read \`emitter.on\`: the cleanup is three lines, and it is attached to the signal, not to the caller.
-5. Ask: which resources in the two projects you built still have no owner responsible for releasing them?`,
-	concept: `**Resource lifetime** — every resource attached to an object (listener, timer, subscription, DOM node) must be released when the object dies, and \`AbortController\` gives many resources a single owner and a single release point.`,
-	whyItMatters: `Leaks are the failure mode that no test catches and no stack trace points at. Once you have seen the count go up and stay up, "cleanup" stops being a style preference and becomes part of the contract between a component and the resources it creates.`,
+Checking those by hand, in a browser page, does not scale — and it does not run on your machine before you push. So this is where the course stops writing its own harness and installs a real test runner: **Vitest**.
+
+\`\`\`
+npm install --save-dev vitest
+npx vitest
+\`\`\`
+
+The assertions are the ones you already know. What changes is who runs them, and when.`,
+	task: `1. \`npm install --save-dev vitest\` and add \`"test": "vitest run"\` to your \`package.json\` scripts.
+2. Create \`src/structures.test.ts\` with the file below — it imports your real \`grid\` and \`union-find\` modules.
+3. Run \`npm test\` and read the report: one line per invariant, and a non-zero exit code when one breaks.
+4. Press **Run the suite** here to execute the same invariants in the page.
+5. Press **Show the Vitest file** and compare: same assertions, now in files Vitest discovers on its own — no page to open, no output to watch.`,
+	concept: `**From a hand-made harness to a test framework** — the idea is identical (set up, assert, report); what the framework adds is a runner that discovers the files, executes them in Node and fails loudly, without you opening a page.`,
+	whyItMatters: `Vitest is not "nicer syntax": it is the automation layer. It runs when you forget to, it fails the build when an invariant breaks, and it is exactly what the closing checklist of this module (Lesson 37) demands.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -44,13 +46,13 @@ Now the lifetime of the listeners is tied to the lifetime of the node that owns 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Memory Management — who releases the listeners?</h3>
+  <h3>Diagram Builder — the invariant suite, now run by Vitest</h3>
   <div id="toolbar">
-    <button id="leak-btn">Create and drop 500 nodes (leaky)</button>
-    <button id="clean-btn">Cleanup with AbortController</button>
+    <button id="run-btn">Run the suite</button>
+    <button id="file-btn">Show the Vitest file</button>
   </div>
-  <div id="meter"><div id="meter-fill"></div></div>
-  <p id="report">No nodes yet. Live listeners: 0</p>
+  <pre id="report">Press Run the suite.</pre>
+  <pre id="file" hidden></pre>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -63,11 +65,11 @@ body {
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  gap: 14px;
+  gap: 12px;
 }
 h3 { font-size: 13px; opacity: 0.7; }
-#toolbar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-#leak-btn, #clean-btn {
+#toolbar { display: flex; gap: 8px; }
+#run-btn, #file-btn {
   background: #2a2a44;
   color: #e8e8f0;
   border: 1px solid #3a3a5c;
@@ -76,129 +78,222 @@ h3 { font-size: 13px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#leak-btn:hover { border-color: #e94560; }
-#clean-btn:hover { border-color: #2ecc71; }
-#meter {
-  width: 520px;
-  max-width: 100%;
-  height: 14px;
-  background: #1e1e34;
+#run-btn:hover, #file-btn:hover { border-color: #8b8bcc; }
+#report, #file {
+  background: #111122;
   border: 1px solid #2a2a44;
-  border-radius: 7px;
-  overflow: hidden;
-}
-#meter-fill {
-  height: 100%;
-  width: 0%;
-  background: #e94560;
-  transition: width 0.2s, background 0.2s;
-}
-#report { color: #b0b0c8; font-size: 13px; text-align: center; white-space: pre-line; min-height: 60px; }`,
-		javascript: `// Diagram Builder — Lesson 36: Memory Management
+  border-radius: 6px;
+  padding: 16px;
+  font-family: monospace;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: #b0b0c8;
+  white-space: pre-wrap;
+  width: 660px;
+  max-width: 100%;
+  min-height: 260px;
+}`,
+		javascript: `// Diagram Builder — Lesson 36: Testing the Structures
 
 const reportEl = document.getElementById("report");
-const meterFill = document.getElementById("meter-fill");
+const fileEl = document.getElementById("file");
 
-// A tiny event emitter, like the one a real editor would use.
-class Emitter {
-  constructor() {
-    this.listeners = new Set();
+// ── The structures under test ──
+const NODES = [
+  { id: "n1", x: 10, y: 10 },
+  { id: "n2", x: 70, y: 20 },
+  { id: "n3", x: 65, y: 65 },
+  { id: "n4", x: 130, y: 130 }
+];
+
+const CELL = 64;
+function cellKey(x, y) {
+  return Math.floor(x / CELL) + ":" + Math.floor(y / CELL);
+}
+
+function buildGrid(nodes) {
+  const grid = new Map();
+  for (const node of nodes) {
+    const key = cellKey(node.x, node.y);
+    if (!grid.has(key)) grid.set(key, []);
+    grid.get(key).push(node);
   }
+  return grid;
+}
 
-  on(type, handler, options = {}) {
-    const entry = { type, handler };
-    this.listeners.add(entry);
+const grid = buildGrid(NODES);
 
-    if (options.signal) {
-      options.signal.addEventListener("abort", () => this.listeners.delete(entry));
-    }
-    return entry;
+function queryCell(candidateGrid, x, y, nodes) {
+  const bucket = candidateGrid.get(cellKey(x, y)) || [];
+  for (const node of bucket) {
+    if (x >= node.x && x <= node.x + 12 && y >= node.y && y <= node.y + 12) return node;
   }
+  return undefined;
+}
 
-  emit(type, payload) {
-    for (const entry of this.listeners) {
-      if (entry.type === type) entry.handler(payload);
-    }
+const parent = new Map();
+const sizes = new Map();
+
+function makeSet(id) {
+  parent.set(id, id);
+  sizes.set(id, 1);
+}
+
+function find(id) {
+  let root = id;
+  while (parent.get(root) !== root) {
+    parent.set(root, parent.get(parent.get(root)));
+    root = parent.get(root);
   }
+  return root;
+}
 
-  get size() {
-    return this.listeners.size;
+function union(a, b) {
+  let rootA = find(a);
+  let rootB = find(b);
+  if (rootA === rootB) return false;
+  if (sizes.get(rootA) < sizes.get(rootB)) [rootA, rootB] = [rootB, rootA];
+  parent.set(rootB, rootA);
+  sizes.set(rootA, sizes.get(rootA) + sizes.get(rootB));
+  return true;
+}
+
+function rebuild(edges) {
+  parent.clear();
+  sizes.clear();
+  for (const node of NODES) makeSet(node.id);
+  for (const edge of edges) union(edge[0], edge[1]);
+}
+
+function componentCount() {
+  return new Set(NODES.map((node) => find(node.id))).size;
+}
+
+// ── A four-line stand-in for the runner ──
+// Vitest is the real runner; this page mirrors its assertions so you can read them.
+const lines = [];
+
+function it(name, fn) {
+  try {
+    fn();
+    lines.push("✓ " + name);
+  } catch (error) {
+    lines.push("✗ " + name + "\\n    " + error.message);
   }
 }
 
-const emitter = new Emitter();
-let model = [];
-let controllers = [];
-let lastMove = "";
-
-function createNode(index, controller) {
-  const node = { id: "n" + index, x: index * 4, y: index * 2 };
-
-  // Every node listens for "move" events for as long as it exists.
-  emitter.on(
-    "move",
-    (payload) => {
-      lastMove = node.id + " → " + payload.x + "," + payload.y;
+function expect(actual) {
+  return {
+    toBe(expected) {
+      if (actual !== expected) {
+        throw new Error("expected " + JSON.stringify(expected) + ", received " + JSON.stringify(actual));
+      }
     },
-    controller ? { signal: controller.signal } : {}
-  );
-
-  return node;
+    toBeUndefined() {
+      if (actual !== undefined) throw new Error("expected undefined, received " + JSON.stringify(actual));
+    },
+    toContain(expected) {
+      if (!actual || !actual.includes(expected)) throw new Error("expected the collection to contain the value");
+    }
+  };
 }
 
-function updateReport(message) {
-  const live = emitter.size;
-  reportEl.textContent = message + "\\nLive listeners: " + live;
+// ── The same suite that lives in src/structures.test.ts ──
+function runSuite() {
+  lines.length = 0;
 
-  meterFill.style.width = Math.min(100, (live / 500) * 100) + "%";
-  meterFill.style.background = live === 0 ? "#2ecc71" : live > 500 ? "#e94560" : "#ffd166";
+  it("files every node under the cell that contains it", () => {
+    for (const node of NODES) {
+      expect(grid.get(cellKey(node.x, node.y))).toContain(node);
+    }
+  });
+
+  it("finds a node that sits on a cell boundary", () => {
+    expect(queryCell(grid, 66, 66, NODES).id).toBe("n3");
+  });
+
+  it("returns undefined for a point with no node", () => {
+    expect(queryCell(grid, 500, 500, NODES)).toBeUndefined();
+  });
+
+  it("gives merged nodes the same root", () => {
+    rebuild([]);
+    union("n1", "n2");
+    expect(find("n1")).toBe(find("n2"));
+  });
+
+  it("keeps the component count stable", () => {
+    rebuild([
+      ["n1", "n2"],
+      ["n2", "n3"]
+    ]);
+    expect(componentCount()).toBe(2);
+  });
+
+  const failed = lines.filter((line) => line.startsWith("✗")).length;
+  const passed = lines.length - failed;
+
+  reportEl.textContent =
+    lines.join("\\n") + "\\n\\n" +
+    passed + " passed, " + failed + " failed" +
+    "\\n\\nthis page runs them for you once. Locally,\\n" +
+    "\`npx vitest\` runs this suite on every change.";
+
+  console.log("vitest suite (mirrored here):", passed, "passed,", failed, "failed");
 }
 
-document.getElementById("leak-btn").addEventListener("click", () => {
-  const created = [];
-  for (let i = 0; i < 500; i++) created.push(createNode(model.length + i, null));
+const VITEST_FILE = \`import { describe, expect, it } from "vitest";
+import { buildGrid, cellKey, queryCell } from "./grid";
+import { createUnionFind } from "./union-find";
 
-  model = model.concat(created);
-  emitter.emit("move", { x: 10, y: 20 });
+describe("spatial hash grid", () => {
+  it("files every node under the cell that contains it", () => {
+    const nodes = [
+      { id: "n1", x: 10, y: 10 },
+      { id: "n2", x: 70, y: 20 },
+      { id: "n3", x: 65, y: 65 }
+    ];
+    const grid = buildGrid(nodes);
 
-  // The nodes leave the model … but their listeners never left the emitter.
-  model = [];
+    for (const node of nodes) {
+      expect(grid.get(cellKey(node.x, node.y))).toContain(node);
+    }
+  });
 
-  updateReport(
-    "500 nodes created and dropped without cleanup." +
-      "\\nThe model is empty again (" + model.length + " nodes)," +
-      "\\nbut the listeners are still retained by the emitter."
-  );
+  it("finds a node that sits on a cell boundary", () => {
+    const nodes = [{ id: "n1", x: 65, y: 65 }];
+    const grid = buildGrid(nodes);
 
-  console.log("Leak: model is empty but the emitter still holds", emitter.size, "listeners");
+    expect(queryCell(grid, 66, 66, nodes)?.id).toBe("n1");
+  });
 });
 
-document.getElementById("clean-btn").addEventListener("click", () => {
-  // 1. Create nodes, each one owning its listeners through a controller.
-  controllers = Array.from({ length: 500 }, () => new AbortController());
+describe("union-find", () => {
+  it("gives merged nodes the same root", () => {
+    const uf = createUnionFind(["a", "b", "c", "d"]);
+    uf.union("a", "b");
 
-  const created = controllers.map((controller, index) =>
-    createNode(model.length + index, controller)
-  );
-  model = model.concat(created);
+    expect(uf.find("a")).toBe(uf.find("b"));
+  });
 
-  updateReport("500 nodes created, each with its own AbortController.");
+  it("keeps the component count stable", () => {
+    const uf = createUnionFind(["a", "b", "c", "d"]);
+    uf.union("a", "b");
+    uf.union("c", "d");
 
-  // 2. Destroy the nodes: one abort per node releases everything it owned.
-  for (const controller of controllers) controller.abort();
-  controllers = [];
-  model = [];
+    expect(uf.components()).toBe(2);
+  });
+});
+\`;
 
-  emitter.emit("move", { x: 0, y: 0 });
-  updateReport(
-    "Nodes destroyed and every listener released with abort()." +
-      "\\nNothing is retained: the count is back to zero."
-  );
+document.getElementById("run-btn").addEventListener("click", runSuite);
 
-  console.log("After abort:", emitter.size, "listeners — last move event:", lastMove);
+document.getElementById("file-btn").addEventListener("click", () => {
+  fileEl.hidden = !fileEl.hidden;
+  fileEl.textContent = VITEST_FILE;
 });
 
-updateReport("No nodes yet.");
-console.log("Emitter ready. Watch the listener count.");`
+runSuite();
+console.log("invariant suite ready — install vitest to run it on every change");`
 	}
 };

@@ -1,36 +1,34 @@
-// Diagram Builder — Lesson 35: The Canvas Needs a Second Representation
+// Diagram Builder — Lesson 35: Groups and Connections
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 35,
-	title: 'The Canvas Needs a Second Representation',
-	description: `Canvas is perfect for drawing and terrible for accessibility: a bitmap has no nodes, no names and no focus. A screen reader cannot read a drawing.
+	title: 'Groups and Connections',
+	description: `The connections are the interesting part of a diagram: they turn a list of shapes into a **graph**.
 
-The answer is not to throw Canvas away. It is to accept that **one state can have two representations**:
+The question we want to answer is simple to say and expensive to answer naively:
 
 \`\`\`
-            Diagram Model
-                  │
-        ┌─────────┴─────────┐
-        ↓                   ↓
-     Canvas                DOM
-    visual                semantic
+"Are these two nodes connected, directly or through others?"
+"How many separate groups does this diagram have?"
 \`\`\`
 
-The Canvas shows the diagram. The DOM layer — real, focusable buttons positioned over the shapes — exposes the same model to the accessibility tree:
+Walking the graph from every node works, but it repeats a lot of work. The classic structure for connectivity is **union-find** (disjoint sets): every node starts alone, and each connection *merges* two groups.
 
-- **semantic HTML** (\`<button>\`, not a \`<div>\` with a click handler)
-- **focus management** so <kbd>Tab</kbd> reaches the diagram and arrows move between nodes
-- **ARIA** so each node announces its name and whether it is selected
-- an **\`aria-live\` region** that narrates the selection
+\`\`\`
+find(a)          → which group is a in?
+union(a, b)      → merge both groups
+\`\`\`
 
-Both layers read the same model. Neither owns it.`,
-	task: `1. Turn the **Accessibility layer** on: the nodes become real buttons over the canvas.
-2. Press <kbd>Tab</kbd> to reach the diagram, then move between nodes with the arrow keys.
-3. Watch the live region: every move is announced, with the node's name and position.
-4. Press <kbd>Enter</kbd> to select — the Canvas and the DOM layer update together.
-5. Open DevTools → Accessibility on a node and read what the browser exposes. Then turn the layer off and try again: the diagram disappears from the tree.`,
-	concept: `**Two representations of one state** — a visual layer (Canvas) for the picture and a semantic layer (DOM + ARIA) for focus, keyboard and screen readers, both projected from the same model.`,
-	whyItMatters: `Accessibility is not a coat of paint applied at the end: it is a second representation of your data, and it only works if the model — not the drawing — is the source of truth. This is the same lesson as "model before rendering", one level deeper.`,
+With path compression and union by size, both operations are effectively constant. Counting groups becomes a single pass over the nodes.
+
+And then the honest part: **union-find merges, it does not split**. Removing a connection cannot be undone by the structure — you have to rebuild it. A data structure is neither good nor bad; it is adequate or inadequate for the operations you need.`,
+	task: `1. Look at \`find\` and \`union\` — the whole structure is a parent table plus two rules.
+2. Read the report: how many groups does the diagram have right now?
+3. Press **Add connection** to merge two groups and watch the colors change.
+4. Press **Remove connection** and read what happens: the structure cannot split, so it is rebuilt from the edges.
+5. Compare with the earlier lesson: which operations did the Map support well? Which ones does union-find support well?`,
+	concept: `**Union-find (disjoint sets)** — a parent table with path compression and union by size that answers connectivity queries in near-constant time, at the cost of not supporting deletion.`,
+	whyItMatters: `Connectivity is a question about *relationships*, not about coordinates or ids, and it needs its own structure. The limitation you just saw is the lesson: choosing a structure means choosing which operations will be cheap and which will be expensive, and that trade-off should be a decision, not an accident.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -40,16 +38,14 @@ Both layers read the same model. Neither owns it.`,
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Diagram Builder — a visual layer and a semantic layer</h3>
+  <h3>Diagram Builder — groups and connections</h3>
   <div id="toolbar">
-    <label id="toggle"><input type="checkbox" id="layer-toggle" checked /> Accessibility layer</label>
-    <span id="status">Focus the diagram and use the arrow keys</span>
+    <button id="add-btn">Add connection</button>
+    <button id="remove-btn">Remove connection</button>
+    <span id="status">Groups: —</span>
   </div>
-  <div id="stage">
-    <canvas id="canvas"></canvas>
-    <div id="overlay"></div>
-  </div>
-  <p id="live" aria-live="polite">No node selected.</p>
+  <canvas id="canvas"></canvas>
+  <p id="report">Press a button to change the graph.</p>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -65,186 +61,195 @@ body {
   gap: 12px;
 }
 h3 { font-size: 13px; opacity: 0.7; }
-#toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
-#toggle { color: #8888aa; font-size: 13px; display: flex; align-items: center; gap: 6px; }
-#status { color: #8888aa; font-size: 12px; }
-#stage {
-  position: relative;
-  width: 640px;
-  max-width: 100%;
+#toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+#add-btn, #remove-btn {
+  background: #2a2a44;
+  color: #e8e8f0;
+  border: 1px solid #3a3a5c;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
 }
+#add-btn:hover, #remove-btn:hover { border-color: #8b8bcc; }
+#status { color: #8888aa; font-size: 12px; }
 #canvas {
-  display: block;
-  width: 100%;
   background: #0d0d1a;
   border: 1px solid #2a2a44;
   border-radius: 8px;
+  width: 640px;
+  max-width: 100%;
 }
-#overlay { position: absolute; inset: 0; }
-.node-button {
-  position: absolute;
-  background: transparent;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  color: transparent;
-  cursor: pointer;
-}
-.node-button:focus-visible {
-  outline: none;
-  border-color: #ffd166;
-  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.35);
-}
-.node-button.selected { border-color: #8b8bcc; }
-#live { color: #b0b0c8; font-size: 13px; min-height: 20px; }`,
-		javascript: `// Diagram Builder — Lesson 35: The Canvas Needs a Second Representation
+#report { color: #8888aa; font-size: 13px; text-align: center; white-space: pre-line; min-height: 56px; max-width: 620px; }`,
+		javascript: `// Diagram Builder — Lesson 35: Groups and Connections
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-const overlay = document.getElementById("overlay");
-const liveEl = document.getElementById("live");
 const statusEl = document.getElementById("status");
+const reportEl = document.getElementById("report");
 
 canvas.width = 640;
 canvas.height = 360;
 
 const model = {
   nodes: [
-    { id: "n1", x: 50, y: 50, width: 150, height: 56, label: "Start" },
-    { id: "n2", x: 300, y: 40, width: 150, height: 56, label: "Load data" },
-    { id: "n3", x: 160, y: 200, width: 150, height: 56, label: "Render" },
-    { id: "n4", x: 420, y: 210, width: 150, height: 56, label: "Save" }
+    { id: "n1", x: 60, y: 60, label: "A" },
+    { id: "n2", x: 240, y: 50, label: "B" },
+    { id: "n3", x: 420, y: 90, label: "C" },
+    { id: "n4", x: 100, y: 230, label: "D" },
+    { id: "n5", x: 300, y: 250, label: "E" },
+    { id: "n6", x: 520, y: 240, label: "F" }
   ],
-  selection: null
+  connections: [
+    { from: "n1", to: "n2" },
+    { from: "n2", to: "n3" },
+    { from: "n4", to: "n5" }
+  ]
 };
 
-const buttonByNode = new Map();
+// ── Union-Find ──
+const parent = new Map();
+const sizes = new Map();
 
-// ── Visual layer ──
-function renderCanvas() {
+function makeSet(id) {
+  parent.set(id, id);
+  sizes.set(id, 1);
+}
+
+function find(id) {
+  let root = id;
+  while (parent.get(root) !== root) {
+    parent.set(root, parent.get(parent.get(root))); // path compression
+    root = parent.get(root);
+  }
+  return root;
+}
+
+function union(a, b) {
+  let rootA = find(a);
+  let rootB = find(b);
+  if (rootA === rootB) return false;
+
+  // union by size: attach the smaller group under the bigger one
+  if (sizes.get(rootA) < sizes.get(rootB)) [rootA, rootB] = [rootB, rootA];
+  parent.set(rootB, rootA);
+  sizes.set(rootA, sizes.get(rootA) + sizes.get(rootB));
+  return true;
+}
+
+// Removing an edge is not a union-find operation: rebuild from the edges.
+function rebuild() {
+  parent.clear();
+  sizes.clear();
+  for (const node of model.nodes) makeSet(node.id);
+  for (const connection of model.connections) union(connection.from, connection.to);
+}
+
+function groups() {
+  const byRoot = new Map();
+  for (const node of model.nodes) {
+    const root = find(node.id);
+    if (!byRoot.has(root)) byRoot.set(root, []);
+    byRoot.get(root).push(node.id);
+  }
+  return byRoot;
+}
+
+const GROUP_COLORS = ["#8b8bcc", "#e94560", "#48dbfb", "#2ecc71", "#ffd166", "#8338ec"];
+let colorByNode = new Map();
+
+function recolor() {
+  colorByNode = new Map();
+  let index = 0;
+  for (const [, members] of groups()) {
+    const color = GROUP_COLORS[index % GROUP_COLORS.length];
+    for (const id of members) colorByNode.set(id, color);
+    index++;
+  }
+}
+
+function center(id) {
+  const node = model.nodes.find((candidate) => candidate.id === id);
+  return { x: node.x, y: node.y };
+}
+
+function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  for (const node of model.nodes) {
-    const selected = node.id === model.selection;
-    ctx.fillStyle = selected ? "#2b2b4d" : "#1e1e34";
-    ctx.strokeStyle = selected ? "#8b8bcc" : "#3a3a5c";
-    ctx.lineWidth = selected ? 3 : 1.5;
+  ctx.strokeStyle = "#5a5a7c";
+  ctx.lineWidth = 2;
+  for (const connection of model.connections) {
+    const from = center(connection.from);
+    const to = center(connection.to);
     ctx.beginPath();
-    ctx.roundRect(node.x, node.y, node.width, node.height, 8);
-    ctx.fill();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
     ctx.stroke();
+  }
 
-    ctx.fillStyle = "#e8e8f0";
-    ctx.font = "600 14px system-ui, sans-serif";
+  for (const node of model.nodes) {
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, 26, 0, Math.PI * 2);
+    ctx.fillStyle = colorByNode.get(node.id) || "#3a3a5c";
+    ctx.fill();
+
+    ctx.fillStyle = "#12122a";
+    ctx.font = "600 15px system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(node.label, node.x + node.width / 2, node.y + node.height / 2);
+    ctx.fillText(node.label, node.x, node.y);
   }
 }
 
-// ── Semantic layer: the same model, as focusable buttons ──
-function buildDomLayer() {
-  overlay.innerHTML = "";
-  buttonByNode.clear();
-
-  for (const node of model.nodes) {
-    const button = document.createElement("button");
-    button.className = "node-button";
-    button.type = "button";
-    button.textContent = node.label;
-    button.setAttribute("aria-label", node.label + " (" + Math.round(node.x) + ", " + Math.round(node.y) + ")");
-    button.setAttribute("aria-pressed", String(node.id === model.selection));
-    button.dataset.nodeId = node.id;
-
-    // Percentages so the layer scales with the canvas
-    button.style.left = (node.x / canvas.width) * 100 + "%";
-    button.style.top = (node.y / canvas.height) * 100 + "%";
-    button.style.width = (node.width / canvas.width) * 100 + "%";
-    button.style.height = (node.height / canvas.height) * 100 + "%";
-
-    button.addEventListener("click", () => select(node.id, button));
-    button.addEventListener("keydown", (event) => moveFocus(event, node));
-
-    overlay.appendChild(button);
-    buttonByNode.set(node.id, button);
-  }
+function describe() {
+  const byRoot = groups();
+  statusEl.textContent = "Groups: " + byRoot.size;
+  return (
+    "nodes: " + model.nodes.length +
+    " · connections: " + model.connections.length +
+    " · groups: " + byRoot.size + "\\n" +
+    [...byRoot.values()].map((members) => "[" + members.join(", ") + "]").join("  ")
+  );
 }
 
-function syncDomLayer() {
-  for (const node of model.nodes) {
-    const button = buttonByNode.get(node.id);
-    if (button) button.setAttribute("aria-pressed", String(node.id === model.selection));
+let pairIndex = 0;
+const CANDIDATE_PAIRS = [
+  ["n3", "n4"],
+  ["n5", "n6"],
+  ["n2", "n6"],
+  ["n1", "n5"]
+];
+
+document.getElementById("add-btn").addEventListener("click", () => {
+  const pair = CANDIDATE_PAIRS[pairIndex % CANDIDATE_PAIRS.length];
+  pairIndex++;
+
+  if (find(pair[0]) !== find(pair[1])) {
+    union(pair[0], pair[1]);
+    model.connections.push({ from: pair[0], to: pair[1] });
+    reportEl.textContent = "union(" + pair[0] + ", " + pair[1] + ") merged two groups\\n" + describe();
+  } else {
+    reportEl.textContent = pair[0] + " and " + pair[1] + " are already connected\\n" + describe();
   }
-}
-
-function select(id, button) {
-  const node = model.nodes.find((candidate) => candidate.id === id);
-  model.selection = id;
-
-  liveEl.textContent = "Selected " + node.label + " at " + node.x + ", " + node.y + ".";
-  statusEl.textContent = "Selected " + node.label;
-
-  if (button) {
-    button.classList.add("selected");
-    button.focus();
-  }
-  for (const [otherId, otherButton] of buttonByNode) {
-    if (otherId !== id) otherButton.classList.remove("selected");
-  }
-
-  renderCanvas();
-  syncDomLayer();
-}
-
-// ── Keyboard navigation between nodes ──
-function moveFocus(event, from) {
-  const directions = {
-    ArrowRight: { dx: 1, dy: 0 },
-    ArrowLeft: { dx: -1, dy: 0 },
-    ArrowDown: { dx: 0, dy: 1 },
-    ArrowUp: { dx: 0, dy: -1 }
-  };
-  const direction = directions[event.key];
-
-  if (!direction) {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      select(from.id, buttonByNode.get(from.id));
-    }
-    return;
-  }
-
-  event.preventDefault();
-
-  let best = null;
-  let bestScore = Infinity;
-
-  for (const candidate of model.nodes) {
-    if (candidate === from) continue;
-    const dx = candidate.x - from.x;
-    const dy = candidate.y - from.y;
-    const forward = dx * direction.dx + dy * direction.dy;
-    if (forward <= 0) continue;
-
-    const score = forward + Math.abs(dx * direction.dy - dy * direction.dx) * 2;
-    if (score < bestScore) {
-      bestScore = score;
-      best = candidate;
-    }
-  }
-
-  if (best) buttonByNode.get(best.id).focus();
-}
-
-document.getElementById("layer-toggle").addEventListener("change", (event) => {
-  overlay.style.display = event.target.checked ? "block" : "none";
-  statusEl.textContent = event.target.checked
-    ? "Accessibility layer on"
-    : "Accessibility layer off — the diagram is no longer in the accessibility tree";
-  liveEl.textContent = event.target.checked ? "Diagram exposed to assistive technology." : "Diagram hidden from assistive technology.";
+  recolor();
+  render();
 });
 
-buildDomLayer();
-renderCanvas();
-console.log("Two representations ready:", model.nodes.length, "nodes");`
+document.getElementById("remove-btn").addEventListener("click", () => {
+  if (model.connections.length === 0) return;
+  const removed = model.connections.pop();
+  rebuild(); // union-find cannot split: recompute from scratch
+  recolor();
+  render();
+  reportEl.textContent =
+    "removed " + removed.from + " → " + removed.to +
+    "\\nunion-find cannot split groups, so the structure was rebuilt\\n" + describe();
+});
+
+rebuild();
+recolor();
+render();
+reportEl.textContent = describe();
+console.log("Union-find ready:", describe());`
 	}
 };

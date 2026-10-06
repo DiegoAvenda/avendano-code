@@ -1,34 +1,36 @@
-// Diagram Builder — Lesson 33: Groups and Connections
+// Diagram Builder — Lesson 33: Too Many Nodes
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 33,
-	title: 'Groups and Connections',
-	description: `The connections are the interesting part of a diagram: they turn a list of shapes into a **graph**.
+	title: 'Too Many Nodes',
+	description: `The Map solved "find by id". But there is a second question in every editor, and it is the one the user asks with the mouse:
 
-The question we want to answer is simple to say and expensive to answer naively:
+**"Which node is under this point?"**
 
-\`\`\`
-"Are these two nodes connected, directly or through others?"
-"How many separate groups does this diagram have?"
-\`\`\`
-
-Walking the graph from every node works, but it repeats a lot of work. The classic structure for connectivity is **union-find** (disjoint sets): every node starts alone, and each connection *merges* two groups.
+The first implementation answers it by checking every node in order:
 
 \`\`\`
-find(a)          → which group is a in?
-union(a, b)      → merge both groups
+for every node:
+   if the point is inside its bounds → return it
 \`\`\`
 
-With path compression and union by size, both operations are effectively constant. Counting groups becomes a single pass over the nodes.
+It is correct. It also becomes a problem exactly when the diagram grows, because every mouse movement asks the question again.
 
-And then the honest part: **union-find merges, it does not split**. Removing a connection cannot be undone by the structure — you have to rebuild it. A data structure is neither good nor bad; it is adequate or inadequate for the operations you need.`,
-	task: `1. Look at \`find\` and \`union\` — the whole structure is a parent table plus two rules.
-2. Read the report: how many groups does the diagram have right now?
-3. Press **Add connection** to merge two groups and watch the colors change.
-4. Press **Remove connection** and read what happens: the structure cannot split, so it is rebuilt from the edges.
-5. Compare with the earlier lesson: which operations did the Map support well? Which ones does union-find support well?`,
-	concept: `**Union-find (disjoint sets)** — a parent table with path compression and union by size that answers connectivity queries in near-constant time, at the cost of not supporting deletion.`,
-	whyItMatters: `Connectivity is a question about *relationships*, not about coordinates or ids, and it needs its own structure. The limitation you just saw is the lesson: choosing a structure means choosing which operations will be cheap and which will be expensive, and that trade-off should be a decision, not an accident.`,
+The fix is to notice that the **access pattern changed**: we do not want "the node with this id", we want "the nodes near this coordinate". That is a spatial question, so it gets a spatial structure: a **spatial hash grid**.
+
+\`\`\`
+cell = (floor(x / CELL), floor(y / CELL))
+grid[cell] = [ …nodes roughly in that square… ]
+\`\`\`
+
+Hit-testing then only touches the bucket for that cell — a handful of nodes instead of all of them.`,
+	task: `1. Press **Benchmark** and compare linear hit-testing with the grid at 100, 1,000 and 5,000 nodes.
+2. Watch how the linear cost grows with the node count while the grid stays roughly flat.
+3. Move the mouse over the canvas: the hovered node is highlighted using the grid.
+4. Read \`cellKey\` and \`queryCell\` — the whole idea is two lines of index arithmetic.
+5. Ask: what breaks if nodes can be bigger than a cell, or if they move? (Spoiler: the index has to be updated.)`,
+	concept: `**Spatial hash grid** — a hash map from grid cell to the elements inside it, so a "near this point" query only inspects one bucket instead of the whole collection.`,
+	whyItMatters: `A data structure is adequate or inadequate for a pattern of operations. The array was fine for "find by id" while the list was small; the grid is the right answer for "find near a point". Noticing that the *question* changed — not that the old code was wrong — is the skill this whole module is practising.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -38,14 +40,16 @@ And then the honest part: **union-find merges, it does not split**. Removing a c
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Diagram Builder — groups and connections</h3>
+  <h3>Diagram Builder — hit-testing thousands of nodes</h3>
   <div id="toolbar">
-    <button id="add-btn">Add connection</button>
-    <button id="remove-btn">Remove connection</button>
-    <span id="status">Groups: —</span>
+    <button class="node-btn" data-count="100">100 nodes</button>
+    <button class="node-btn" data-count="1000">1,000 nodes</button>
+    <button class="node-btn" data-count="5000">5,000 nodes</button>
+    <button id="bench-btn">Benchmark queries</button>
+    <span id="status">Hover the canvas</span>
   </div>
   <canvas id="canvas"></canvas>
-  <p id="report">Press a button to change the graph.</p>
+  <p id="report">Pick a size and benchmark hit-testing.</p>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -61,8 +65,8 @@ body {
   gap: 12px;
 }
 h3 { font-size: 13px; opacity: 0.7; }
-#toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
-#add-btn, #remove-btn {
+#toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: center; }
+.node-btn, #bench-btn {
   background: #2a2a44;
   color: #e8e8f0;
   border: 1px solid #3a3a5c;
@@ -71,7 +75,7 @@ h3 { font-size: 13px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#add-btn:hover, #remove-btn:hover { border-color: #8b8bcc; }
+.node-btn.active { background: #8b8bcc; border-color: #8b8bcc; color: #12122a; }
 #status { color: #8888aa; font-size: 12px; }
 #canvas {
   background: #0d0d1a;
@@ -80,8 +84,8 @@ h3 { font-size: 13px; opacity: 0.7; }
   width: 640px;
   max-width: 100%;
 }
-#report { color: #8888aa; font-size: 13px; text-align: center; white-space: pre-line; min-height: 56px; max-width: 620px; }`,
-		javascript: `// Diagram Builder — Lesson 33: Groups and Connections
+#report { color: #8888aa; font-size: 13px; text-align: center; white-space: pre-line; min-height: 56px; }`,
+		javascript: `// Diagram Builder — Lesson 33: Too Many Nodes
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -91,165 +95,121 @@ const reportEl = document.getElementById("report");
 canvas.width = 640;
 canvas.height = 360;
 
-const model = {
-  nodes: [
-    { id: "n1", x: 60, y: 60, label: "A" },
-    { id: "n2", x: 240, y: 50, label: "B" },
-    { id: "n3", x: 420, y: 90, label: "C" },
-    { id: "n4", x: 100, y: 230, label: "D" },
-    { id: "n5", x: 300, y: 250, label: "E" },
-    { id: "n6", x: 520, y: 240, label: "F" }
-  ],
-  connections: [
-    { from: "n1", to: "n2" },
-    { from: "n2", to: "n3" },
-    { from: "n4", to: "n5" }
-  ]
-};
+const CELL = 64;
 
-// ── Union-Find ──
-const parent = new Map();
-const sizes = new Map();
-
-function makeSet(id) {
-  parent.set(id, id);
-  sizes.set(id, 1);
+let seed = 11;
+function random() {
+  seed = (seed * 1664525 + 1013904223) % 4294967296;
+  return seed / 4294967296;
 }
 
-function find(id) {
-  let root = id;
-  while (parent.get(root) !== root) {
-    parent.set(root, parent.get(parent.get(root))); // path compression
-    root = parent.get(root);
-  }
-  return root;
+let nodes = [];
+let grid = new Map();
+let hovered = null;
+
+function cellKey(x, y) {
+  return Math.floor(x / CELL) + ":" + Math.floor(y / CELL);
 }
 
-function union(a, b) {
-  let rootA = find(a);
-  let rootB = find(b);
-  if (rootA === rootB) return false;
-
-  // union by size: attach the smaller group under the bigger one
-  if (sizes.get(rootA) < sizes.get(rootB)) [rootA, rootB] = [rootB, rootA];
-  parent.set(rootB, rootA);
-  sizes.set(rootA, sizes.get(rootA) + sizes.get(rootB));
-  return true;
-}
-
-// Removing an edge is not a union-find operation: rebuild from the edges.
-function rebuild() {
-  parent.clear();
-  sizes.clear();
-  for (const node of model.nodes) makeSet(node.id);
-  for (const connection of model.connections) union(connection.from, connection.to);
-}
-
-function groups() {
-  const byRoot = new Map();
-  for (const node of model.nodes) {
-    const root = find(node.id);
-    if (!byRoot.has(root)) byRoot.set(root, []);
-    byRoot.get(root).push(node.id);
-  }
-  return byRoot;
-}
-
-const GROUP_COLORS = ["#8b8bcc", "#e94560", "#48dbfb", "#2ecc71", "#ffd166", "#8338ec"];
-let colorByNode = new Map();
-
-function recolor() {
-  colorByNode = new Map();
-  let index = 0;
-  for (const [, members] of groups()) {
-    const color = GROUP_COLORS[index % GROUP_COLORS.length];
-    for (const id of members) colorByNode.set(id, color);
-    index++;
+// ── Build the spatial index: one pass over the nodes ──
+function buildGrid() {
+  grid = new Map();
+  for (const node of nodes) {
+    const key = cellKey(node.x, node.y);
+    if (!grid.has(key)) grid.set(key, []);
+    grid.get(key).push(node);
   }
 }
 
-function center(id) {
-  const node = model.nodes.find((candidate) => candidate.id === id);
-  return { x: node.x, y: node.y };
+function queryCell(x, y) {
+  const bucket = grid.get(cellKey(x, y));
+  if (!bucket) return null;
+  for (const node of bucket) {
+    if (x >= node.x && x <= node.x + node.size && y >= node.y && y <= node.y + node.size) {
+      return node;
+    }
+  }
+  return null;
+}
+
+function queryLinear(x, y) {
+  for (const node of nodes) {
+    if (x >= node.x && x <= node.x + node.size && y >= node.y && y <= node.y + node.size) {
+      return node;
+    }
+  }
+  return null;
+}
+
+function setCount(count) {
+  seed = 11;
+  nodes = Array.from({ length: count }, (_, index) => ({
+    id: "n" + index,
+    x: 8 + random() * 618,
+    y: 8 + random() * 338,
+    size: 12
+  }));
+  buildGrid();
+  hovered = null;
+  render();
+
+  document.querySelectorAll(".node-btn").forEach((btn) => {
+    btn.classList.toggle("active", Number(btn.dataset.count) === count);
+  });
+
+  reportEl.textContent =
+    count.toLocaleString() + " nodes · grid buckets: " + grid.size +
+    "\\nNow benchmark the two query strategies.";
 }
 
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.strokeStyle = "#5a5a7c";
-  ctx.lineWidth = 2;
-  for (const connection of model.connections) {
-    const from = center(connection.from);
-    const to = center(connection.to);
-    ctx.beginPath();
-    ctx.moveTo(from.x, from.y);
-    ctx.lineTo(to.x, to.y);
-    ctx.stroke();
-  }
-
-  for (const node of model.nodes) {
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, 26, 0, Math.PI * 2);
-    ctx.fillStyle = colorByNode.get(node.id) || "#3a3a5c";
-    ctx.fill();
-
-    ctx.fillStyle = "#12122a";
-    ctx.font = "600 15px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(node.label, node.x, node.y);
+  for (const node of nodes) {
+    ctx.fillStyle = node === hovered ? "#8b8bcc" : "#3a3a5c";
+    ctx.fillRect(node.x, node.y, node.size, node.size);
   }
 }
 
-function describe() {
-  const byRoot = groups();
-  statusEl.textContent = "Groups: " + byRoot.size;
-  return (
-    "nodes: " + model.nodes.length +
-    " · connections: " + model.connections.length +
-    " · groups: " + byRoot.size + "\\n" +
-    [...byRoot.values()].map((members) => "[" + members.join(", ") + "]").join("  ")
-  );
-}
+canvas.addEventListener("pointermove", (event) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width) * canvas.width;
+  const y = ((event.clientY - rect.top) / rect.height) * canvas.height;
 
-let pairIndex = 0;
-const CANDIDATE_PAIRS = [
-  ["n3", "n4"],
-  ["n5", "n6"],
-  ["n2", "n6"],
-  ["n1", "n5"]
-];
-
-document.getElementById("add-btn").addEventListener("click", () => {
-  const pair = CANDIDATE_PAIRS[pairIndex % CANDIDATE_PAIRS.length];
-  pairIndex++;
-
-  if (find(pair[0]) !== find(pair[1])) {
-    union(pair[0], pair[1]);
-    model.connections.push({ from: pair[0], to: pair[1] });
-    reportEl.textContent = "union(" + pair[0] + ", " + pair[1] + ") merged two groups\\n" + describe();
-  } else {
-    reportEl.textContent = pair[0] + " and " + pair[1] + " are already connected\\n" + describe();
-  }
-  recolor();
+  hovered = queryCell(x, y);
+  statusEl.textContent = hovered ? "Hovering " + hovered.id + " (grid lookup)" : "Hover the canvas";
   render();
 });
 
-document.getElementById("remove-btn").addEventListener("click", () => {
-  if (model.connections.length === 0) return;
-  const removed = model.connections.pop();
-  rebuild(); // union-find cannot split: recompute from scratch
-  recolor();
-  render();
+document.querySelectorAll(".node-btn").forEach((btn) => {
+  btn.addEventListener("click", () => setCount(Number(btn.dataset.count)));
+});
+
+document.getElementById("bench-btn").addEventListener("click", () => {
+  const QUERIES = 5000;
+  let start = performance.now();
+  for (let i = 0; i < QUERIES; i++) {
+    queryLinear(random() * 640, random() * 360);
+  }
+  const linearMs = performance.now() - start;
+
+  start = performance.now();
+  for (let i = 0; i < QUERIES; i++) {
+    queryCell(random() * 640, random() * 360);
+  }
+  const gridMs = performance.now() - start;
+
+  const speedup = gridMs > 0 ? Math.round(linearMs / gridMs) + "×" : "more than 1000×";
   reportEl.textContent =
-    "removed " + removed.from + " → " + removed.to +
-    "\\nunion-find cannot split groups, so the structure was rebuilt\\n" + describe();
+    QUERIES.toLocaleString() + " hit-tests over " + nodes.length.toLocaleString() + " nodes\\n" +
+    "Linear scan : " + linearMs.toFixed(1) + " ms\\n" +
+    "Spatial grid: " + gridMs.toFixed(1) + " ms\\n" +
+    "Speed-up    : " + speedup;
+
+  console.log("hit-test:", linearMs.toFixed(1), "ms linear ·", gridMs.toFixed(1), "ms grid");
 });
 
-rebuild();
-recolor();
-render();
-reportEl.textContent = describe();
-console.log("Union-find ready:", describe());`
+setCount(1000);
+console.log("Spatial grid ready — cell size", CELL);`
 	}
 };

@@ -1,32 +1,35 @@
-// Pixel Art Editor — Lesson 27: Testing the Hard Parts
+// Pixel Art Editor — Lesson 27: Write Your Own Tests
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 27,
-	title: 'Testing the Hard Parts',
-	description: `With the harness from the previous lesson, testing pure logic is easy: give an input, claim an output.
+	title: 'Write Your Own Tests',
+	description: `Everything we built so far —the index math, the flood fill, the ring buffer— we verified **by clicking and looking**. That works while you are the one clicking, and it stops working the moment you change one line.
 
-Then real code shows up, and it has three properties that make tests hard:
+A test is a claim about your code that a machine re-checks for you:
 
 \`\`\`
-time        the result depends on when you ask
-randomness  the result changes on every run
-side effects resources outside the function: listeners, timers, the DOM
+test("a ring buffer keeps only the last N items", () => {
+  const buffer = new RingBuffer(3);
+  [1, 2, 3, 4].forEach((value) => buffer.push(value));
+  expect(buffer.toArray()).toEqual([2, 3, 4]);
+});
 \`\`\`
 
-You do not test those by waiting or by hoping. You **replace the source of the problem with something you control**:
+We are not going to install anything. Just like the bundler in Lesson 19, we write the tool ourselves first, so we know exactly what it does:
 
-- **time** → inject a clock: the code asks \`now()\` instead of reading the real clock, and the test advances it by hand.
-- **randomness** → seed it: the same seed must produce the same sequence, forever.
-- **side effects** → observe the effect and then check the cleanup: subscribe, unsubscribe, and assert the count is back to zero.
+\`\`\`
+test(name, fn)   runs fn, catches the failure, records pass or fail
+expect(value)    makes a claim about the value
+\`\`\`
 
-That last one is the bridge to the next lesson.`,
-	task: `1. Press **Run tests**: three groups, each one testing something that used to be untestable.
-2. Read \`createFakeClock\` — the test moves time forward, so a result that depends on time becomes deterministic.
-3. Read \`createRandom\`: the same seed produces the same sequence. Change the seed and the sequence changes.
-4. Read the emitter test: it does not only check that the listener is called, it checks that **the listener count returns to zero**.
-5. Try to write a test for something in your own project that depends on time. What would you have to inject?`,
-	concept: `**Testability is a design property** — when time, randomness and side effects are injected instead of read from the environment, a test can control them; when they are hard-coded, the only way to test is to wait and hope.`,
-	whyItMatters: `These three techniques are what make the difference between testing the easy 20% and testing the part where bugs actually live. And the third one — asserting that resources are released — is exactly how we are going to verify memory behaviour in the next lesson.`,
+Eleven lines. Enough to test the code you already wrote.`,
+	task: `1. Press **Run tests** and read the report — three of these tests cover the ring buffer from Lesson 16 and one covers the index math from Lesson 11.
+2. Look at \`expect\`: it compares the value you got with the value you expected, and throws a message when they differ.
+3. Press **Add a failing test** — a wrong expectation is included on purpose, so you can see what a failure looks like.
+4. Fix that expectation (the ring buffer keeps the last N items, not the first ones) and run again.
+5. Add a test of your own: what should \`pop()\` return when the buffer is empty?`,
+	concept: `**A test is an executable claim** — a small function that sets up a situation, compares the real result with the expected one, and fails loudly when they disagree.`,
+	whyItMatters: `We are about to change this editor again: cleaning up resources, measuring performance, adding types. Without tests, every one of those changes is a gamble. With tests, a change that breaks the index math or the undo history tells you immediately — and the claim stays in the repo for the next person.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -36,9 +39,10 @@ That last one is the bridge to the next lesson.`,
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Pixel Art Editor — testing time, randomness and side effects</h3>
+  <h3>Pixel Art Editor — tests for the code you already wrote</h3>
   <div id="toolbar">
     <button id="run-btn">Run tests</button>
+    <button id="fail-btn">Add a failing test</button>
   </div>
   <pre id="report">Press Run tests.</pre>
   <script src="script.js"></script>
@@ -56,7 +60,8 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#run-btn {
+#toolbar { display: flex; gap: 8px; }
+#run-btn, #fail-btn {
   background: #2a2a44;
   color: #e0e0e0;
   border: 1px solid #3a3a5c;
@@ -65,7 +70,7 @@ h3 { font-size: 14px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#run-btn:hover { border-color: #8b8bcc; }
+#run-btn:hover, #fail-btn:hover { border-color: #8b8bcc; }
 #report {
   background: #111122;
   border: 1px solid #2a2a44;
@@ -76,14 +81,15 @@ h3 { font-size: 14px; opacity: 0.7; }
   line-height: 1.8;
   color: #b0b0c8;
   white-space: pre-wrap;
-  width: 640px;
+  width: 620px;
   max-width: 100%;
-  min-height: 280px;
+  min-height: 260px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 27: Testing the Hard Parts
+		javascript: `// Pixel Art Editor — Lesson 27: Write Your Own Tests
 
 const reportEl = document.getElementById("report");
 
+// ── 1. The tool: eleven lines ──
 let passed = 0;
 let failed = 0;
 let lines = [];
@@ -114,115 +120,73 @@ function expect(actual) {
   };
 }
 
-// ── 1. Time: inject the clock instead of reading the environment ──
-function createFrameTimer(now, window = 3) {
-  const samples = [];
-  let last = now();
-
-  return {
-    sample() {
-      const current = now();
-      samples.push(current - last);
-      last = current;
-      if (samples.length > window) samples.shift();
-      return samples.length;
-    },
-    average() {
-      if (samples.length === 0) return 0;
-      return samples.reduce((sum, value) => sum + value, 0) / samples.length;
-    }
-  };
-}
-
-function createFakeClock(start = 0) {
-  let current = start;
-  return {
-    now: () => current,
-    advance(ms) { current += ms; }
-  };
-}
-
-// ── 2. Randomness: seed it so it stops being random ──
-function createRandom(seed) {
-  let state = seed;
-  return () => {
-    state = (state * 1664525 + 1013904223) % 4294967296;
-    return state / 4294967296;
-  };
-}
-
-// ── 3. Side effects: observe them, then check the cleanup ──
-function createEmitter() {
-  const listeners = new Set();
-  return {
-    on(handler) {
-      listeners.add(handler);
-      return () => listeners.delete(handler);
-    },
-    emit(value) {
-      for (const handler of listeners) handler(value);
-    },
-    get size() { return listeners.size; }
-  };
-}
-
 function runTests() {
   passed = 0;
   failed = 0;
   lines = [];
 
-  // Time
-  test("the frame timer reports the average of the samples it was given", () => {
-    const clock = createFakeClock();
-    const timer = createFrameTimer(clock.now);
+  // ── The code under test: index math from Lesson 11 ──
+  const indexOf = (x, y, width) => y * width + x;
 
-    clock.advance(16);
-    timer.sample();
-    clock.advance(34);
-    timer.sample();
-
-    expect(timer.average()).toBe(25);
+  test("index math walks each row before the next", () => {
+    expect(indexOf(0, 0, 4)).toBe(0);
+    expect(indexOf(3, 0, 4)).toBe(3);
+    expect(indexOf(0, 1, 4)).toBe(4);
   });
 
-  test("the frame timer keeps only the last N samples", () => {
-    const clock = createFakeClock();
-    const timer = createFrameTimer(clock.now, 2);
-
-    for (const delta of [10, 20, 30]) {
-      clock.advance(delta);
-      timer.sample();
+  // ── The code under test: the ring buffer from Lesson 16 ──
+  class RingBuffer {
+    constructor(capacity) {
+      this.buffer = new Array(capacity);
+      this.capacity = capacity;
+      this.head = 0;
+      this.count = 0;
     }
+    push(item) {
+      this.buffer[this.head] = item;
+      this.head = (this.head + 1) % this.capacity;
+      if (this.count < this.capacity) this.count++;
+    }
+    pop() {
+      if (this.count === 0) return undefined;
+      this.head = (this.head - 1 + this.capacity) % this.capacity;
+      this.count--;
+      const item = this.buffer[this.head];
+      this.buffer[this.head] = undefined;
+      return item;
+    }
+    forEach(fn) {
+      if (this.count === 0) return;
+      const start = (this.head - this.count + this.capacity) % this.capacity;
+      for (let i = 0; i < this.count; i++) fn(this.buffer[(start + i) % this.capacity], i);
+    }
+    get size() { return this.count; }
+  }
 
-    expect(timer.average()).toBe(25);
+  test("a ring buffer keeps only the last N items", () => {
+    const buffer = new RingBuffer(3);
+    [1, 2, 3, 4].forEach((value) => buffer.push(value));
+    const values = [];
+    buffer.forEach((value) => values.push(value));
+    expect(values).toEqual([2, 3, 4]);
   });
 
-  // Randomness
-  test("the same seed always produces the same sequence", () => {
-    const first = createRandom(42);
-    const second = createRandom(42);
-    expect([first(), first(), first()]).toEqual([second(), second(), second()]);
+  test("size never grows past the capacity", () => {
+    const buffer = new RingBuffer(2);
+    for (let i = 0; i < 10; i++) buffer.push(i);
+    expect(buffer.size).toBe(2);
   });
 
-  test("different seeds produce different sequences", () => {
-    expect(createRandom(1)() === createRandom(2)()).toBe(false);
+  test("pop returns the newest item first", () => {
+    const buffer = new RingBuffer(3);
+    buffer.push("a");
+    buffer.push("b");
+    expect(buffer.pop()).toBe("b");
+    expect(buffer.pop()).toBe("a");
   });
 
-  // Side effects
-  test("an emitter calls every subscriber", () => {
-    const emitter = createEmitter();
-    const seen = [];
-    emitter.on((value) => seen.push(value));
-    emitter.on((value) => seen.push(value * 2));
-    emitter.emit(5);
-    expect(seen).toEqual([5, 10]);
-  });
-
-  test("unsubscribing leaves nothing behind", () => {
-    const emitter = createEmitter();
-    const off = emitter.on(() => {});
-    expect(emitter.size).toBe(1);
-    off();
-    expect(emitter.size).toBe(0);
+  test("pop on an empty buffer returns undefined", () => {
+    expect(new RingBuffer(2).pop()).toBe(undefined);
   });
 
   reportEl.textContent = lines.join("\\n") + "\\n\\n" + passed + " passed, " + failed + " failed";
@@ -230,6 +194,23 @@ function runTests() {
 }
 
 document.getElementById("run-btn").addEventListener("click", runTests);
+
+// A wrong expectation, on purpose: see what a failure looks like.
+document.getElementById("fail-btn").addEventListener("click", () => {
+  runTests();
+  test("the ring buffer keeps insertion order after wrapping", () => {
+    const buffer = new RingBuffer(2);
+    buffer.push(1);
+    buffer.push(2);
+    buffer.push(3);
+    const values = [];
+    buffer.forEach((value) => values.push(value));
+    expect(values).toEqual([1, 2]);
+  });
+  reportEl.textContent = lines.join("\\n") + "\\n\\n" + passed + " passed, " + failed + " failed";
+  console.log("with the failing test:", passed, "passed,", failed, "failed");
+});
+
 runTests();`
 	}
 };

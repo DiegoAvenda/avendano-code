@@ -1,4 +1,4 @@
-// Lesson 11 — Where Does a Pixel Live?
+// Pixel Art Editor — Lesson 11: Where Does a Pixel Live?
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 11,

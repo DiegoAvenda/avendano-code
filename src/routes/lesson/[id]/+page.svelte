@@ -100,7 +100,33 @@
 		if (done && active) return 'bg-[#40916c]';
 		if (done) return 'bg-[#2d6a4f]';
 		if (active) return 'bg-accent';
+		if (isChallenge(id)) return 'bg-[#9a7b1f] hover:bg-[#b8933a]';
 		return 'bg-surface-3 hover:bg-[#4a4a6c]';
+	}
+
+	/** @param {number} id */
+	function isChallenge(id) {
+		return lessonList.find((entry) => entry.id === id)?.type === 'challenge';
+	}
+
+	/** @param {{ id: number, title: string, type?: string }} entry */
+	function dotTitle(entry, index) {
+		return (
+			index + 1 + '. ' + entry.title + (entry.type === 'challenge' ? ' · reto integrador' : '')
+		);
+	}
+
+	/** @param {{ id: number, title: string, type?: string }} entry */
+	function dotLabel(entry, index) {
+		return (
+			'Go to lesson ' +
+			(index + 1) +
+			' of ' +
+			moduleLessons.length +
+			': ' +
+			entry.title +
+			(entry.type === 'challenge' ? ' (challenge)' : '')
+		);
 	}
 
 	// Persist the current lesson and remember it per module.
@@ -180,13 +206,8 @@
 						entry.id
 					)}"
 					onclick={() => goToLesson(entry.id)}
-					title={index + 1 + '. ' + entry.title}
-					aria-label={'Go to lesson ' +
-						(index + 1) +
-						' of ' +
-						moduleLessons.length +
-						': ' +
-						entry.title}
+					title={dotTitle(entry, index)}
+					aria-label={dotLabel(entry, index)}
 					aria-current={entry.id === currentId ? 'true' : undefined}
 				></button>
 			{/each}

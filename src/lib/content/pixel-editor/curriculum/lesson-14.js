@@ -1,4 +1,4 @@
-// Lesson 14 — Find the Recursion Limit
+// Pixel Art Editor — Lesson 14: Find the Recursion Limit
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 14,

@@ -1,4 +1,4 @@
-// Lesson 12 — Typed Memory
+// Pixel Art Editor — Lesson 12: Typed Memory
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 12,

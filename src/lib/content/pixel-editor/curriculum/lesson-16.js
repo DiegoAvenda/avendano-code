@@ -1,32 +1,43 @@
-// Lesson 16 — Bounded History
+// Pixel Art Editor — Lesson 16: El Inspector de Contornos
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 16,
-	title: 'Bounded History',
-	description: `Undo is the feature that makes an editor feel safe — and the feature that silently eats memory.
+	title: 'El Inspector de Contornos',
+	type: 'challenge',
+	description: `**Reto integrador (boss fight).** You already built the two halves of this: a flat pixel buffer (\`Uint8Array\`, row-major) and a queue that walks a region without recursion. Now use them for something that is **not** filling.
 
-The simple version is a list of snapshots: copy the whole buffer after every action. It works, until you look at the numbers:
+The editor needs a "selection outline": when the user clicks a shape, we want the **outer border** of that shape, not its interior. The border of a region is made of the pixels that have at least one 4-directional neighbour *outside* the region — either a different colour, or past the edge of the canvas:
 
 \`\`\`
-32 × 32   = 1,024 bytes per snapshot → 100 snapshots = 100 KB   manageable
-256 × 256 = 65,536 bytes per snapshot → 100 snapshots = 6.5 MB  not great
-1024 × 1024 = 1,048,576 bytes → 100 snapshots = 100 MB          terrible
+0 0 0 0 0
+0 1 1 1 0     the eight 1s on the ring are the border
+0 1 1 1 0     the centre 1 has four neighbours inside → interior
+0 1 1 1 0
+0 0 0 0 0
 \`\`\`
 
-Two ideas fix this:
+**The 80/20:** 80% of the work is the structure you already have — the same BFS with a queue, the same \`index = y * width + x\` math. The 20% that is new is the boundary condition: pushing neighbours into the queue is not enough, you have to decide, for every pixel you visit, whether it touches the outside.
 
-**1. Store patches, not snapshots.** A stroke changes a handful of pixels, so record only \`{ index, previous } → new\` per pixel.
+Implement this function in the editor:
 
-**2. Bound the list.** We want "the last 100 actions", not "all actions". A **ring buffer** keeps a fixed-size array and moves a write pointer around it with modulo arithmetic; when it wraps, the oldest entry is overwritten. Memory is bounded by construction.
+\`\`\`ts
+function getRegionBorder(
+  buffer: Uint8Array,
+  width: number,
+  height: number,
+  startX: number,
+  startY: number
+): number[]
+\`\`\`
 
-The same structure answers a second question: the FPS meter only needs the last 120 frame times.`,
-	task: `1. Draw a few strokes and press **Ctrl+Z** — each stroke comes back as one undo step.
-2. Look at the status: \`History: n/100\`. Keep drawing past 100 strokes and watch it stop growing.
-3. Read \`RingBuffer\`: \`push\`, \`pop\`, and \`forEach\` (which walks the buffer from oldest to newest).
-4. Find the FPS meter in the corner. It averages the last 120 frame times using a second ring buffer.
-5. Ask: why does \`push\` never need to copy or resize anything?`,
-	concept: `**Ring buffer** — a fixed-size circular array with a head pointer that wraps with \`%\`. Insert and remove are O(1) and memory is bounded: new entries overwrite the oldest. Combined with **patch-based history** (storing diffs instead of full snapshots).`,
-	whyItMatters: `Unbounded history leaks memory; full snapshots waste it. A ring buffer of patches gives predictable memory with O(1) push/pop — exactly what a real-time editor needs. The same pattern covers any "keep the last N things" problem: frame times, recent events, log lines, undo steps.`,
+Return the **1D indices** of the border pixels. The colour of the region is whatever \`buffer[startY * width + startX]\` holds. The checks below run four cases, including one where the shape touches the canvas edge and one with a second shape that must be ignored.`,
+	task: `1. Read \`getRegionBorder\` in the editor: the signature and the checks are provided, the body is yours.
+2. Walk the region from the start pixel using the queue from the previous lesson.
+3. For every pixel you visit, look at its four neighbours: if any of them is out of bounds or has a different colour, that pixel is part of the border.
+4. Press **Run the checks** as many times as you need — each case tells you what it expected.
+5. When all four cases pass, the closing card appears. Read it: the pattern you just wrote is the core of two classic interview problems.`,
+	concept: `**BFS plus a boundary condition.** The traversal is the one you already know; the new reasoning is per-pixel: a pixel belongs to the border when at least one of its neighbours is outside the region — where "outside" includes the edge of the canvas.`,
+	whyItMatters: `This is the shape of a whole family of problems: flood fill asks "which pixels are connected?", but perimeter problems ask "which connected pixels touch the outside?" The same traversal, a different question, and the neighbour test is where the reasoning lives.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -36,16 +47,16 @@ The same structure answers a second question: the FPS meter only needs the last 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Pixel Art Editor — bounded undo and FPS</h3>
-  <div id="fps-meter">FPS: --</div>
+  <h3>Pixel Art Editor — the selection outline</h3>
   <div id="toolbar">
-    <button id="btn-draw" class="tool-btn active">✏️ Draw</button>
-    <button id="btn-bucket">🪣 Bucket</button>
-    <button id="btn-undo">↩ Undo</button>
-    <span id="status">Draw | Color: 1 | History: 0/100</span>
+    <button id="run-btn">Run the checks</button>
   </div>
-  <div id="palette"></div>
-  <canvas id="canvas" width="32" height="32"></canvas>
+  <canvas id="canvas" width="16" height="16"></canvas>
+  <pre id="report">Implement getRegionBorder and press Run the checks.</pre>
+  <section id="card" hidden>
+    <h4>Challenge cleared</h4>
+    <p><strong>Conexión con Entrevistas:</strong> Este patrón es la base del problema <strong>LC 463 (Island Perimeter)</strong> y <strong>LC 733 (Flood Fill)</strong>. ¡Intenta resolverlos con lo que acabas de aprender!</p>
+  </section>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -61,293 +72,197 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#fps-meter {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  background: #161628;
-  border: 1px solid #2a2a44;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-family: monospace;
-  font-size: 12px;
-  color: #2ecc71;
-}
-#toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.tool-btn, #btn-undo {
+#run-btn {
   background: #2a2a44;
-  color: #c0c0d8;
+  color: #e0e0e0;
   border: 1px solid #3a3a5c;
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 13px;
   cursor: pointer;
 }
-.tool-btn.active { background: #8b8bcc; border-color: #8b8bcc; color: #161628; }
-#status { color: #8888aa; font-size: 12px; }
-#palette { display: flex; gap: 6px; }
-.swatch {
-  width: 26px;
-  height: 26px;
-  border-radius: 5px;
-  border: 2px solid transparent;
-  cursor: pointer;
-}
-.swatch.selected { border-color: #ffffff; }
+#run-btn:hover { border-color: #8b8bcc; }
 #canvas {
-  width: 512px;
-  height: 512px;
+  width: 256px;
+  height: 256px;
   image-rendering: pixelated;
-  image-rendering: crisp-edges;
   border: 2px solid #3a3a5c;
-  cursor: crosshair;
+}
+#report {
+  background: #111122;
+  border: 1px solid #2a2a44;
+  border-radius: 6px;
+  padding: 16px;
+  font-family: monospace;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: #b0b0c8;
+  white-space: pre-wrap;
+  width: 640px;
+  max-width: 100%;
+  min-height: 220px;
+}
+#card {
+  width: 640px;
+  max-width: 100%;
+  background: rgba(72, 219, 251, 0.08);
+  border: 1px solid #48dbfb;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+#card h4 {
+  margin-bottom: 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #48dbfb;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 16: Bounded History
-
-const WIDTH = 32;
-const HEIGHT = 32;
+		javascript: `// Pixel Art Editor — Lesson 16: El Inspector de Contornos
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-const statusEl = document.getElementById("status");
-const fpsEl = document.getElementById("fps-meter");
+const reportEl = document.getElementById("report");
+const cardEl = document.getElementById("card");
 
-const PALETTE = [
-  "#1a1a2e", "#e94560", "#48dbfb", "#ffd166", "#2ecc71", "#8338ec"
-];
+const WIDTH = 16;
+const HEIGHT = 16;
+const COLORS = ["#1a1a2e", "#e94560", "#48dbfb"];
 
-const pixels = new Uint8Array(WIDTH * HEIGHT);
+// ── Provided: a flat buffer with two shapes on it ──
+const buffer = new Uint8Array(WIDTH * HEIGHT);
 const indexOf = (x, y) => y * WIDTH + x;
 
-let selectedColor = 1;
-let currentTool = "draw";
-
-// ── Ring Buffer ──
-class RingBuffer {
-  constructor(capacity) {
-    this.buffer = new Array(capacity);
-    this.capacity = capacity;
-    this.head = 0;    // where the next item goes
-    this.count = 0;   // how many items we currently hold
-  }
-
-  push(item) {
-    this.buffer[this.head] = item;
-    this.head = (this.head + 1) % this.capacity;
-    if (this.count < this.capacity) this.count++;
-  }
-
-  pop() {
-    if (this.count === 0) return undefined;
-    this.head = (this.head - 1 + this.capacity) % this.capacity;
-    this.count--;
-    const item = this.buffer[this.head];
-    this.buffer[this.head] = undefined;
-    return item;
-  }
-
-  // Oldest → newest
-  forEach(fn) {
-    if (this.count === 0) return;
-    const start = (this.head - this.count + this.capacity) % this.capacity;
-    for (let i = 0; i < this.count; i++) {
-      fn(this.buffer[(start + i) % this.capacity], i);
+function fillRect(x0, y0, w, h, color) {
+  for (let y = y0; y < y0 + h; y++) {
+    for (let x = x0; x < x0 + w; x++) {
+      if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) buffer[indexOf(x, y)] = color;
     }
-  }
-
-  get size() {
-    return this.count;
   }
 }
 
-// ── Undo: a bounded history of patches ──
-const HISTORY_CAPACITY = 100;
-const undoHistory = new RingBuffer(HISTORY_CAPACITY);
-let currentStroke = [];
+fillRect(2, 2, 8, 6, 1);   // the shape we will inspect
+fillRect(11, 10, 3, 3, 2); // a second shape that must be ignored
 
-function render() {
+function render(border = []) {
   const image = ctx.createImageData(WIDTH, HEIGHT);
-  const data = image.data;
-  for (let i = 0; i < pixels.length; i++) {
-    const hex = PALETTE[pixels[i]] || PALETTE[0];
+  const isBorder = new Set(border);
+
+  for (let i = 0; i < buffer.length; i++) {
+    const hex = isBorder.has(i) ? "#ffd166" : COLORS[buffer[i]] || COLORS[0];
     const o = i * 4;
-    data[o] = parseInt(hex.slice(1, 3), 16);
-    data[o + 1] = parseInt(hex.slice(3, 5), 16);
-    data[o + 2] = parseInt(hex.slice(5, 7), 16);
-    data[o + 3] = 255;
+    image.data[o] = parseInt(hex.slice(1, 3), 16);
+    image.data[o + 1] = parseInt(hex.slice(3, 5), 16);
+    image.data[o + 2] = parseInt(hex.slice(5, 7), 16);
+    image.data[o + 3] = 255;
   }
+
   ctx.putImageData(image, 0, 0);
 }
 
-function updateStatus() {
-  statusEl.textContent =
-    (currentTool === "draw" ? "Draw" : "Bucket") +
-    " | Color: " + selectedColor +
-    " | History: " + undoHistory.size + "/" + HISTORY_CAPACITY;
+// ─────────────────────────────────────────────────────────────
+// YOUR CODE (the 20%): 80% of this is the BFS from Lesson 15.
+// ─────────────────────────────────────────────────────────────
+function getRegionBorder(buffer, width, height, startX, startY) {
+  // Your code here
 }
 
-// ── FPS: a bounded window of frame times ──
-const fpsBuffer = new RingBuffer(120);
-let lastFrame = performance.now();
-let dirty = true;
+// ── Provided: four cases with known answers ──
+function bufferFromRows(rows) {
+  const height = rows.length;
+  const width = rows[0].length;
+  const data = new Uint8Array(width * height);
 
-function updateFPS(now) {
-  const delta = now - lastFrame;
-  lastFrame = now;
-  if (delta > 0) fpsBuffer.push(delta);
-  if (fpsBuffer.size === 0) return;
-
-  let sum = 0;
-  fpsBuffer.forEach((dt) => { sum += dt; });
-  fpsEl.textContent = "FPS: " + Math.round(1000 / (sum / fpsBuffer.size));
-}
-
-function loop(now) {
-  updateFPS(now);
-  if (dirty) {
-    render();
-    dirty = false;
-  }
-  requestAnimationFrame(loop);
-}
-
-// ── Toolbar ──
-const btnDraw = document.getElementById("btn-draw");
-const btnBucket = document.getElementById("btn-bucket");
-
-btnDraw.addEventListener("click", () => {
-  currentTool = "draw";
-  btnDraw.classList.add("active");
-  btnBucket.classList.remove("active");
-  updateStatus();
-});
-btnBucket.addEventListener("click", () => {
-  currentTool = "bucket";
-  btnBucket.classList.add("active");
-  btnDraw.classList.remove("active");
-  updateStatus();
-});
-
-// ── Palette ──
-const paletteEl = document.getElementById("palette");
-PALETTE.forEach((hex, index) => {
-  const swatch = document.createElement("div");
-  swatch.className = "swatch" + (index === selectedColor ? " selected" : "");
-  swatch.style.background = hex;
-  swatch.addEventListener("click", () => {
-    document.querySelectorAll(".swatch").forEach((s) => s.classList.remove("selected"));
-    swatch.classList.add("selected");
-    selectedColor = index;
-    updateStatus();
-  });
-  paletteEl.appendChild(swatch);
-});
-
-// ── Flood fill (BFS with a head-index queue) ──
-function floodFill(startX, startY, replacement) {
-  const start = indexOf(startX, startY);
-  const target = pixels[start];
-  const patches = [];
-  if (target === replacement) return patches;
-
-  const queue = [start];
-  let head = 0;
-  const seen = new Uint8Array(WIDTH * HEIGHT);
-  seen[start] = 1;
-
-  while (head < queue.length) {
-    const index = queue[head++];
-    if (pixels[index] !== target) continue;
-
-    patches.push({ index, previous: pixels[index] });
-    pixels[index] = replacement;
-
-    const x = index % WIDTH;
-    const y = (index - x) / WIDTH;
-    if (x > 0 && !seen[index - 1]) { seen[index - 1] = 1; queue.push(index - 1); }
-    if (x < WIDTH - 1 && !seen[index + 1]) { seen[index + 1] = 1; queue.push(index + 1); }
-    if (y > 0 && !seen[index - WIDTH]) { seen[index - WIDTH] = 1; queue.push(index - WIDTH); }
-    if (y < HEIGHT - 1 && !seen[index + WIDTH]) { seen[index + WIDTH] = 1; queue.push(index + WIDTH); }
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) data[y * width + x] = Number(rows[y][x]);
   }
 
-  return patches;
+  return { data, width, height };
 }
 
-// ── Undo ──
-function undo() {
-  const patches = undoHistory.pop();
-  if (!patches) return;
-  for (let i = patches.length - 1; i >= 0; i--) {
-    pixels[patches[i].index] = patches[i].previous;
+const CASES = [
+  {
+    name: "a single pixel has no interior",
+    rows: ["00000", "00000", "00100", "00000", "00000"],
+    start: [2, 2],
+    expected: [12]
+  },
+  {
+    name: "a shape touching the canvas edge is all border",
+    rows: ["11000", "11000", "11000", "00000", "00000"],
+    start: [0, 0],
+    expected: [0, 1, 5, 6, 10, 11]
+  },
+  {
+    name: "interior pixels are not border",
+    rows: ["00000", "01110", "01110", "01110", "00000"],
+    start: [2, 2],
+    expected: [6, 7, 8, 11, 13, 16, 17, 18]
+  },
+  {
+    name: "only the region of the start point is inspected",
+    rows: ["01100", "01100", "00000", "00022", "00022"],
+    start: [1, 0],
+    expected: [1, 2, 6, 7]
   }
-  dirty = true;
-  updateStatus();
+];
+
+function sameIndices(actual, expected) {
+  if (!Array.isArray(actual)) return false;
+  const a = [...new Set(actual)].sort((x, y) => x - y);
+  const b = [...expected].sort((x, y) => x - y);
+  return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
-document.getElementById("btn-undo").addEventListener("click", undo);
-document.addEventListener("keydown", (event) => {
-  if ((event.ctrlKey || event.metaKey) && event.key === "z") {
-    event.preventDefault();
-    undo();
-  }
-});
+function runChecks() {
+  const lines = [];
 
-// ── Input ──
-let isDrawing = false;
+  for (const testCase of CASES) {
+    const { data, width, height } = bufferFromRows(testCase.rows);
+    let actual;
+    let error = null;
 
-function screenToGrid(event) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: Math.floor(((event.clientX - rect.left) / rect.width) * WIDTH),
-    y: Math.floor(((event.clientY - rect.top) / rect.height) * HEIGHT)
-  };
-}
-
-function paint(event) {
-  const { x, y } = screenToGrid(event);
-  if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
-
-  const index = indexOf(x, y);
-  if (pixels[index] === selectedColor) return;
-
-  currentStroke.push({ index, previous: pixels[index] });
-  pixels[index] = selectedColor;
-  dirty = true;
-}
-
-canvas.addEventListener("pointerdown", (event) => {
-  const { x, y } = screenToGrid(event);
-  if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
-
-  if (currentTool === "bucket") {
-    const patches = floodFill(x, y, selectedColor);
-    if (patches.length > 0) {
-      undoHistory.push(patches);
-      dirty = true;
-      updateStatus();
+    try {
+      actual = getRegionBorder(data, width, height, testCase.start[0], testCase.start[1]);
+    } catch (thrown) {
+      error = thrown.message;
     }
-  } else {
-    isDrawing = true;
-    currentStroke = [];
-    canvas.setPointerCapture(event.pointerId);
-    paint(event);
-  }
-});
 
-canvas.addEventListener("pointermove", (event) => { if (isDrawing) paint(event); });
-canvas.addEventListener("pointerup", () => {
-  if (isDrawing && currentStroke.length > 0) {
-    undoHistory.push(currentStroke);
-    currentStroke = [];
-    updateStatus();
+    const ok = !error && sameIndices(actual, testCase.expected);
+    lines.push(
+      (ok ? "✓ " : "✗ ") + testCase.name +
+        (ok
+          ? " — " + testCase.expected.length + " border pixels"
+          : "\\n    expected [" + testCase.expected.join(", ") + "]" +
+            (error ? "\\n    error: " + error : "\\n    received " + JSON.stringify(actual)))
+    );
   }
-  isDrawing = false;
-});
-canvas.addEventListener("contextmenu", (event) => event.preventDefault());
 
-render();
-updateStatus();
-requestAnimationFrame(loop);
-console.log("Bounded history ready — ring buffer of patches + FPS window");`
+  const failed = lines.filter((line) => line.startsWith("✗")).length;
+  const passed = CASES.length - failed;
+
+  reportEl.textContent =
+    lines.join("\\n") + "\\n\\n" + passed + " of " + CASES.length + " cases pass" +
+    (failed === 0 ? " — challenge cleared" : "");
+
+  // Visual feedback on the demo shape.
+  let border = [];
+  try {
+    border = getRegionBorder(buffer, WIDTH, HEIGHT, 3, 3) || [];
+  } catch {
+    border = [];
+  }
+  render(Array.isArray(border) ? border : []);
+
+  cardEl.hidden = failed !== 0;
+  console.log("border challenge:", passed + "/" + CASES.length, "cases");
+}
+
+document.getElementById("run-btn").addEventListener("click", runChecks);
+
+render([]);
+runChecks();
+console.log("Implement getRegionBorder and press Run the checks");`
 	}
 };

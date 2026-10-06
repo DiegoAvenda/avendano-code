@@ -1,35 +1,33 @@
-// Diagram Builder — Lesson 34: Testing the Structures
+// Diagram Builder — Lesson 34: Radar de Selecciones por Proximidad
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 34,
-	title: 'Testing the Structures',
-	description: `The diagram editor now rests on three data structures we chose for three different access patterns:
+	title: 'Radar de Selecciones por Proximidad',
+	type: 'challenge',
+	description: `**Reto integrador (boss fight).** The spatial hash grid from the previous lesson answers "which node is under this point?". The selection tool needs a harder question: **"which nodes are inside this circle?"** — a circular lasso of radius \`R\` around the cursor.
 
-\`\`\`
-Map            find a node by id            O(1)
-spatial grid   find nodes near a point      one bucket instead of all
-union-find     are these two connected?     near O(1)
-\`\`\`
+The naive answer is to check every node. You already know why that does not scale: the grid exists so that a query only touches the cells the circle can reach.
 
-They are also the code most likely to break silently. A wrong bucket key does not throw; it just returns the wrong node, or none, and the canvas looks almost right.
+**The 80/20:** 80% of this is the grid you just built — cells of \`cellSize\`, \`cellAt(cellX, cellY)\`, the nodes stored inside. The 20% that is new is the geometry: turning a circle into a **range of cells to visit**, filtering the candidates by euclidean distance, and returning them ordered from the nearest to the farthest.
 
-That is exactly what tests are for. But structures are not tested one example at a time — they are tested with **invariants**: properties that must hold for every input.
+Implement this function in the editor:
 
-\`\`\`
-every node in a bucket is inside that bucket's cell
-find() of an unknown id returns undefined, never a wrong node
-after union(a, b): find(a) === find(b)
-after a rebuild, the component count matches a fresh computation
+\`\`\`ts
+function getNodesInRadius(
+  grid: SpatialHashGrid,
+  center: { x: number; y: number },
+  radius: number
+): Node[]
 \`\`\`
 
-Invariants catch the failures that examples miss: the node that falls exactly on a cell boundary, the connection that merges two groups that were already merged, the query outside the canvas.`,
-	task: `1. Press **Run tests** — the harness from the first module comes back, now testing the diagram's structures.
-2. Read the boundary test: a node exactly on a cell edge must still be found.
-3. Read the invariant test for the grid: it checks **every** node against the cell it was filed under, not just one.
-4. Read the union-find tests: merging, idempotence (merging twice changes nothing) and the component count after a rebuild.
-5. Add a failing test on purpose: what happens if you query a point outside the canvas?`,
-	concept: `**Invariant-based tests** — instead of checking one input and one output, state a property that must hold for every input and let the test walk the data checking it.`,
-	whyItMatters: `These three structures are what make the editor scale, and they are also the ones whose bugs are invisible on screen. When the project closes, this suite is the evidence that "the structures work" is a fact and not an impression — and it is the same evidence the Definition of Done asks for.`,
+The checks verify three things: that you return exactly the nodes inside the circle, that they come back **sorted by distance**, and that you only read the cells the circle can reach.`,
+	task: `1. Read the provided \`SpatialHashGrid\`: \`cellSize\`, \`cellAt(cellX, cellY)\` and the nodes it stores.
+2. Turn the circle into a cell range: from \`floor((x - radius) / cellSize)\` to \`floor((x + radius) / cellSize)\`, and the same for \`y\`.
+3. Collect the candidates from those cells, keep the ones whose distance to the centre is \`<= radius\`, and sort them from nearest to farthest.
+4. Press **Run the checks**. The report tells you how many nodes it expected, whether the order was right, and how many cells your query read.
+5. When the three cases pass, the closing card appears — read it before moving on.`,
+	concept: `**Spatial range query.** A circle becomes a rectangle of cells (its bounding box), the grid turns that rectangle into a handful of buckets, and the exact geometry — the euclidean distance — is applied only to the candidates inside them.`,
+	whyItMatters: `This is the same idea the grid was built for, one step further: not just "is there something here?" but "what is near this point, in order?". That is the core of spatial search, recommendation by proximity and the kind of question interviewers wrap in problems like K closest points.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -39,12 +37,16 @@ Invariants catch the failures that examples miss: the node that falls exactly on
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Diagram Builder — testing the structures</h3>
+  <h3>Diagram Builder — the magnetic lasso</h3>
   <div id="toolbar">
-    <button id="run-btn">Run tests</button>
-    <button id="fail-btn">Add a failing test</button>
+    <button id="run-btn">Run the checks</button>
   </div>
-  <pre id="report">Press Run tests.</pre>
+  <canvas id="canvas"></canvas>
+  <pre id="report">Implement getNodesInRadius and press Run the checks.</pre>
+  <section id="card" hidden>
+    <h4>Challenge cleared</h4>
+    <p><strong>Conexión con Entrevistas:</strong> Has implementado una optimización espacial que resuelve el núcleo de <strong>LC 973 (K Closest Points to Origin)</strong>. ¡Pon a prueba tu lógica en LeetCode!</p>
+  </section>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -60,8 +62,7 @@ body {
   gap: 12px;
 }
 h3 { font-size: 13px; opacity: 0.7; }
-#toolbar { display: flex; gap: 8px; }
-#run-btn, #fail-btn {
+#run-btn {
   background: #2a2a44;
   color: #e8e8f0;
   border: 1px solid #3a3a5c;
@@ -70,7 +71,14 @@ h3 { font-size: 13px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#run-btn:hover, #fail-btn:hover { border-color: #8b8bcc; }
+#run-btn:hover { border-color: #8b8bcc; }
+#canvas {
+  background: #0d0d1a;
+  border: 1px solid #2a2a44;
+  border-radius: 8px;
+  width: 640px;
+  max-width: 100%;
+}
 #report {
   background: #111122;
   border: 1px solid #2a2a44;
@@ -83,204 +91,226 @@ h3 { font-size: 13px; opacity: 0.7; }
   white-space: pre-wrap;
   width: 660px;
   max-width: 100%;
-  min-height: 300px;
+  min-height: 240px;
+}
+#card {
+  width: 660px;
+  max-width: 100%;
+  background: rgba(72, 219, 251, 0.08);
+  border: 1px solid #48dbfb;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+#card h4 {
+  margin-bottom: 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #48dbfb;
 }`,
-		javascript: `// Diagram Builder — Lesson 34: Testing the Structures
+		javascript: `// Diagram Builder — Lesson 34: Radar de Selecciones por Proximidad
 
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 const reportEl = document.getElementById("report");
+const cardEl = document.getElementById("card");
 
-let passed = 0;
-let failed = 0;
-let lines = [];
+const WIDTH = 640;
+const HEIGHT = 360;
+const CELL = 64;
 
-function test(name, fn) {
-  try {
-    fn();
-    passed++;
-    lines.push("✓ " + name);
-  } catch (error) {
-    failed++;
-    lines.push("✗ " + name + "\\n    " + error.message);
+canvas.width = WIDTH;
+canvas.height = HEIGHT;
+
+// ── A deterministic diagram to query ──
+let seed = 7;
+function random() {
+  seed = (seed * 1664525 + 1013904223) % 4294967296;
+  return seed / 4294967296;
+}
+
+const nodes = Array.from({ length: 60 }, (_, index) => ({
+  id: "n" + index,
+  x: Math.round(10 + random() * (WIDTH - 20)),
+  y: Math.round(10 + random() * (HEIGHT - 20))
+}));
+
+// ── Provided: the spatial hash grid from the previous lesson ──
+class SpatialHashGrid {
+  constructor(cellSize) {
+    this.cellSize = cellSize;
+    this.cells = new Map();
+    this.reads = 0; // how many cells a query touches
+  }
+
+  insert(node) {
+    const key = this.keyFor(node.x, node.y);
+    if (!this.cells.has(key)) this.cells.set(key, []);
+    this.cells.get(key).push(node);
+  }
+
+  keyFor(x, y) {
+    return Math.floor(x / this.cellSize) + ":" + Math.floor(y / this.cellSize);
+  }
+
+  /** Read one cell by its integer cell coordinates. */
+  cellAt(cellX, cellY) {
+    this.reads++;
+    return this.cells.get(cellX + ":" + cellY) || [];
+  }
+
+  resetReads() {
+    this.reads = 0;
   }
 }
 
-function expect(actual) {
-  return {
-    toBe(expected) {
-      if (actual !== expected) {
-        throw new Error("expected " + JSON.stringify(expected) + ", received " + JSON.stringify(actual));
-      }
-    },
-    toBeUndefined() {
-      if (actual !== undefined) throw new Error("expected undefined, received " + JSON.stringify(actual));
-    },
-    toEqual(expected) {
-      const got = JSON.stringify(actual);
-      const want = JSON.stringify(expected);
-      if (got !== want) throw new Error("expected " + want + ", received " + got);
-    }
-  };
+const grid = new SpatialHashGrid(CELL);
+for (const node of nodes) grid.insert(node);
+
+const distanceTo = (node, center) => Math.hypot(node.x - center.x, node.y - center.y);
+
+// ─────────────────────────────────────────────────────────────
+// YOUR CODE (the 20%): 80% of this is the grid you already built.
+// ─────────────────────────────────────────────────────────────
+function getNodesInRadius(grid, center, radius) {
+  // Your code here
 }
 
-// ── The three structures, exactly as the lessons built them ──
-const NODES = [
-  { id: "n1", x: 10, y: 10 },
-  { id: "n2", x: 70, y: 20 },
-  { id: "n3", x: 65, y: 65 },
-  { id: "n4", x: 130, y: 130 }
+// ── Provided: the checks ──
+function makeBoundaryCase() {
+  const smallGrid = new SpatialHashGrid(CELL);
+  const pool = [
+    { id: "inside", x: 100, y: 100 },
+    { id: "edge", x: 150, y: 100 },
+    { id: "outside", x: 151, y: 100 }
+  ];
+
+  for (const node of pool) smallGrid.insert(node);
+  return { grid: smallGrid, pool };
+}
+
+const boundary = makeBoundaryCase();
+
+const CHECKS = [
+  { name: "a circle that spans several cells", center: { x: 210, y: 160 }, radius: 100 },
+  { name: "a small circle near the canvas corner", center: { x: 40, y: 40 }, radius: 55 },
+  { name: "a node exactly on the radius counts", center: { x: 100, y: 100 }, radius: 50, ...boundary },
+  { name: "a circle with nothing inside", center: { x: 1, y: 1 }, radius: 5 }
 ];
 
-const nodesById = new Map(NODES.map((node) => [node.id, node]));
-
-const CELL = 64;
-function cellKey(x, y) {
-  return Math.floor(x / CELL) + ":" + Math.floor(y / CELL);
+function cellsInBoundingBox(center, radius, cellSize) {
+  const minX = Math.floor((center.x - radius) / cellSize);
+  const maxX = Math.floor((center.x + radius) / cellSize);
+  const minY = Math.floor((center.y - radius) / cellSize);
+  const maxY = Math.floor((center.y + radius) / cellSize);
+  return (maxX - minX + 1) * (maxY - minY + 1);
 }
 
-function buildGrid(nodes) {
-  const grid = new Map();
-  for (const node of nodes) {
-    const key = cellKey(node.x, node.y);
-    if (!grid.has(key)) grid.set(key, []);
-    grid.get(key).push(node);
-  }
-  return grid;
-}
+function runChecks() {
+  const lines = [];
 
-const grid = buildGrid(NODES);
+  for (const check of CHECKS) {
+    const activeGrid = check.grid ?? grid;
+    const pool = check.pool ?? nodes;
+    const expected = pool
+      .filter((node) => distanceTo(node, check.center) <= check.radius)
+      .sort((a, b) => distanceTo(a, check.center) - distanceTo(b, check.center));
 
-function queryCell(x, y) {
-  const bucket = grid.get(cellKey(x, y)) || [];
-  for (const node of bucket) {
-    if (x >= node.x && x <= node.x + 12 && y >= node.y && y <= node.y + 12) return node;
-  }
-  return undefined;
-}
+    activeGrid.resetReads();
 
-const parent = new Map();
-const sizes = new Map();
-
-function makeSet(id) {
-  parent.set(id, id);
-  sizes.set(id, 1);
-}
-
-function find(id) {
-  let root = id;
-  while (parent.get(root) !== root) {
-    parent.set(root, parent.get(parent.get(root)));
-    root = parent.get(root);
-  }
-  return root;
-}
-
-function union(a, b) {
-  let rootA = find(a);
-  let rootB = find(b);
-  if (rootA === rootB) return false;
-  if (sizes.get(rootA) < sizes.get(rootB)) [rootA, rootB] = [rootB, rootA];
-  parent.set(rootB, rootA);
-  sizes.set(rootA, sizes.get(rootA) + sizes.get(rootB));
-  return true;
-}
-
-function rebuild(edges) {
-  parent.clear();
-  sizes.clear();
-  for (const node of NODES) makeSet(node.id);
-  for (const edge of edges) union(edge[0], edge[1]);
-}
-
-function componentCount() {
-  const roots = new Set(NODES.map((node) => find(node.id)));
-  return roots.size;
-}
-
-function runTests() {
-  passed = 0;
-  failed = 0;
-  lines = [];
-
-  // Map index
-  test("the index finds a node by id", () => {
-    expect(nodesById.get("n3")).toBe(NODES[2]);
-  });
-
-  test("an unknown id returns undefined, never a wrong node", () => {
-    expect(nodesById.get("n99")).toBeUndefined();
-  });
-
-  // Spatial grid
-  test("a point inside a node finds that node", () => {
-    expect(queryCell(12, 12).id).toBe("n1");
-  });
-
-  test("a point on a cell boundary still finds its node", () => {
-    expect(queryCell(66, 66).id).toBe("n3");
-  });
-
-  test("a point with no node returns undefined", () => {
-    expect(queryCell(500, 500)).toBeUndefined();
-  });
-
-  test("every node is filed under the cell that contains it", () => {
-    for (const node of NODES) {
-      const bucket = grid.get(cellKey(node.x, node.y));
-      if (!bucket || !bucket.includes(node)) {
-        throw new Error(node.id + " is not in the bucket for its own cell");
-      }
+    let actual;
+    let error = null;
+    try {
+      actual = getNodesInRadius(activeGrid, check.center, check.radius);
+    } catch (thrown) {
+      error = thrown.message;
     }
-  });
 
-  // Union-find
-  test("after union(a, b), both share a root", () => {
-    rebuild([]);
-    union("n1", "n2");
-    expect(find("n1")).toBe(find("n2"));
-  });
+    const notes = [];
+    const isArray = Array.isArray(actual);
+    if (!isArray) notes.push(error ? "error: " + error : "expected an array");
 
-  test("merging the same pair twice changes nothing", () => {
-    rebuild([]);
-    const first = union("n1", "n2");
-    const second = union("n1", "n2");
-    expect(first).toBe(true);
-    expect(second).toBe(false);
-    expect(componentCount()).toBe(3);
-  });
+    if (isArray) {
+      const expectedIds = [...expected.map((node) => node.id)].sort().join(",");
+      const actualIds = [...new Set(actual.map((node) => node.id))].sort().join(",");
+      if (expectedIds !== actualIds) notes.push("expected [" + expectedIds + "], received [" + actualIds + "]");
 
-  test("connected nodes end up in one component", () => {
-    rebuild([
-      ["n1", "n2"],
-      ["n2", "n3"]
-    ]);
-    expect(componentCount()).toBe(2);
-  });
+      const distances = actual.map((node) => distanceTo(node, check.center));
+      const sorted = distances.every((value, index) => index === 0 || distances[index - 1] <= value);
+      if (!sorted) notes.push("the nodes are not sorted from nearest to farthest");
 
-  test("a rebuild after removing an edge splits the component again", () => {
-    rebuild([
-      ["n1", "n2"],
-      ["n2", "n3"]
-    ]);
-    expect(componentCount()).toBe(2);
-    rebuild([["n1", "n2"]]);
-    expect(componentCount()).toBe(3);
-  });
+      const limit = cellsInBoundingBox(check.center, check.radius, activeGrid.cellSize);
+      if (activeGrid.reads < 1) notes.push("the grid was never queried");
+      else if (activeGrid.reads > limit) notes.push("read " + activeGrid.reads + " cells, expected at most " + limit);
+    }
 
-  reportEl.textContent = lines.join("\\n") + "\\n\\n" + passed + " passed, " + failed + " failed";
-  console.log("structure tests:", passed, "passed,", failed, "failed");
+    const ok = notes.length === 0;
+    lines.push(
+      (ok ? "✓ " : "✗ ") + check.name +
+        (ok
+          ? " — " + expected.length + " node(s), " + activeGrid.reads + " cell(s) read"
+          : "\\n    " + notes.join("\\n    "))
+    );
+  }
+
+  const failed = lines.filter((line) => line.startsWith("✗")).length;
+  const passed = CHECKS.length - failed;
+
+  reportEl.textContent =
+    lines.join("\\n") + "\\n\\n" + passed + " of " + CHECKS.length + " cases pass" +
+    (failed === 0 ? " — challenge cleared" : "");
+
+  drawSample();
+  cardEl.hidden = failed !== 0;
+  console.log("radius challenge:", passed + "/" + CHECKS.length, "cases");
 }
 
-document.getElementById("run-btn").addEventListener("click", runTests);
+// ── Provided: visual feedback ──
+function drawSample() {
+  const center = { x: 210, y: 160 };
+  const radius = 100;
 
-// A failing test on purpose: a query outside the canvas has no answer.
-document.getElementById("fail-btn").addEventListener("click", () => {
-  runTests();
-  test("a point far outside the canvas returns the nearest node", () => {
-    expect(queryCell(1000, 1000)).toBe(NODES[3]);
-  });
-  reportEl.textContent = lines.join("\\n") + "\\n\\n" + passed + " passed, " + failed + " failed";
-});
+  let found = [];
+  try {
+    found = getNodesInRadius(grid, center, radius) || [];
+  } catch {
+    found = [];
+  }
 
-runTests();`
+  const selected = new Set(found.map((node) => node.id));
+
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+  ctx.strokeStyle = "#48dbfb";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  for (const node of nodes) {
+    const chosen = selected.has(node.id);
+    ctx.fillStyle = chosen ? "#ffd166" : "#3a3a5c";
+    ctx.fillRect(node.x - 4, node.y - 4, 8, 8);
+
+    if (chosen) {
+      ctx.strokeStyle = "rgba(255, 209, 102, 0.4)";
+      ctx.beginPath();
+      ctx.moveTo(center.x, center.y);
+      ctx.lineTo(node.x, node.y);
+      ctx.stroke();
+    }
+  }
+
+  ctx.fillStyle = "#48dbfb";
+  ctx.fillRect(center.x - 3, center.y - 3, 6, 6);
+}
+
+document.getElementById("run-btn").addEventListener("click", runChecks);
+
+drawSample();
+runChecks();
+console.log("Implement getNodesInRadius and press Run the checks");`
 	}
 };

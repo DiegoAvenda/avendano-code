@@ -61,11 +61,39 @@ test('lesson ids are unique and sequential starting at 1', () => {
 
 test('the shipped lesson index stays lightweight (metadata only)', () => {
 	for (const entry of lessonList) {
+		const expectedKeys = entry.type === undefined ? ['id', 'title'] : ['id', 'title', 'type'];
 		assert.deepEqual(
 			Object.keys(entry).sort(),
-			['id', 'title'],
-			`index entry for lesson ${entry.id} should only carry id and title`
+			expectedKeys,
+			`index entry for lesson ${entry.id} should only carry id, title and an optional type`
 		);
+
+		if (entry.type !== undefined) {
+			assert.equal(entry.type, 'challenge', `lesson ${entry.id} has an unknown type`);
+		}
+	}
+});
+
+test('challenge lessons are flagged in both the index and the content', () => {
+	const flagged = lessonList.filter((entry) => entry.type === 'challenge');
+	assert.ok(flagged.length >= 2, 'each module should close its arc with a challenge');
+
+	for (const entry of flagged) {
+		const lesson = lessons.find((candidate) => candidate.id === entry.id);
+		assert.equal(lesson.type, 'challenge', `lesson ${entry.id} should carry type: 'challenge'`);
+		assert.ok(
+			lesson.description.includes('Reto integrador'),
+			`challenge lesson ${entry.id} should announce itself in its prose`
+		);
+	}
+});
+
+test('each module has at least one challenge', () => {
+	for (const module of modules) {
+		const challenges = lessonList.filter(
+			(entry) => entry.type === 'challenge' && entry.id >= module.from && entry.id <= module.to
+		);
+		assert.ok(challenges.length >= 1, `module "${module.label}" has no challenge lesson`);
 	}
 });
 

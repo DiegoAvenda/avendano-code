@@ -1,4 +1,4 @@
-// Lesson 8 — Listen to the User
+// Pixel Art Editor — Lesson 8: Listen to the User
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 8,

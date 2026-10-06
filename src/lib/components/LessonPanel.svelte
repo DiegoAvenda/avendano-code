@@ -15,7 +15,16 @@
 	class="h-full [scrollbar-width:thin] [scrollbar-color:var(--color-surface-3)_transparent] overflow-y-auto p-5"
 >
 	<header class="mb-5 border-b border-line pb-3">
-		<h2 class="text-[22px] leading-tight font-bold text-ink">{lesson.title}</h2>
+		<div class="flex flex-wrap items-center gap-2">
+			<h2 class="text-[22px] leading-tight font-bold text-ink">{lesson.title}</h2>
+			{#if lesson.type === 'challenge'}
+				<span
+					class="rounded-full border border-[#ffd166] px-2 py-0.5 text-[11px] font-semibold tracking-[0.08em] text-[#ffd166] uppercase"
+				>
+					Reto integrador
+				</span>
+			{/if}
+		</div>
 	</header>
 
 	<section class="flex flex-col gap-5">

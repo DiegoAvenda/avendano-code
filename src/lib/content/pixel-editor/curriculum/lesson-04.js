@@ -1,4 +1,4 @@
-// Lesson 4 — Repeat the Work
+// Pixel Art Editor — Lesson 4: Repeat the Work
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 4,

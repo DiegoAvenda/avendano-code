@@ -1,9 +1,9 @@
-// Lesson 10 — Escape the DOM
+// Pixel Art Editor — Lesson 10: El Rescate (Canvas)
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 10,
-	title: 'Escape the DOM',
-	description: `We measured the DOM grid and we know its cost. Now we introduce a second way to render the same thing: **Canvas**.
+	title: 'El Rescate (Canvas)',
+	description: `We measured the DOM grid and we know its cost: 16,384 elements, seconds of layout, a page that stops responding. Now we rescue the editor with a second way to render the same thing: **Canvas**.
 
 With Canvas the browser gives us a bitmap and a drawing API. Nothing in the page represents a pixel any more — we ask for rectangles and the browser paints them:
 
@@ -11,11 +11,11 @@ With Canvas the browser gives us a bitmap and a drawing API. Nothing in the page
 Pixel Data  →  Canvas  →  Visual Output
 \`\`\`
 
-The interesting part is not the new API. It is the comparison: same grid, two representations, two measurements.`,
+The interesting part is not the new API. It is the comparison: same grid, two representations, and the frame rate we get back.`,
 	task: `1. Press a size button and watch the Canvas version draw the checkerboard.
 2. Press **Compare DOM vs Canvas** — it builds the same grid both ways and times each one.
-3. Compare the numbers and, more importantly, the element counts.
-4. Open DevTools → Performance and record the comparison. Which panels are still busy for the DOM version?
+3. Compare the numbers and, more importantly, the element counts: 1 element against 16,384.
+4. Open DevTools → Performance, record while you draw on the Canvas, and confirm you are back at **60 FPS**.
 5. Change \`LIGHT\` and \`DARK\` to your own colors and run again.`,
 	concept: `**Rendering is a choice.** The DOM describes structure and lets the browser render it; Canvas describes pixels directly. The same data can be shown by either one.`,
 	whyItMatters: `The DOM version is not "wrong" — it is the right representation for a page of text or a list. But our data is a grid of pixels, and that access pattern is what Canvas was built for. Choosing a representation is an engineering decision, and now you can measure it.`,
@@ -85,7 +85,7 @@ h3 { font-size: 14px; opacity: 0.7; }
 }
 .cell.light { background: #2a2a3e; }
 .cell.dark { background: #1a1a2e; }`,
-		javascript: `// Pixel Art Editor — Lesson 10: Escape the DOM
+		javascript: `// Pixel Art Editor — Lesson 10: El Rescate (Canvas)
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");

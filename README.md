@@ -13,60 +13,83 @@ Routes: `/` is the home page (module list, progress and a "continue" shortcut) a
 `/lesson/<id>` is the player. Lessons have their own URL, so they can be bookmarked
 or shared, and the browser's back button works.
 
+> Working on this repository with a coding agent? Start with [AGENTS.md](./AGENTS.md):
+> it documents the curriculum invariants, the layout conventions and the traps that
+> have already caused bugs.
+
 The app hosts two independent projects ("modules") that share the same lesson
 player, the same playground and the same progress store:
 
-| Module                                 | Project          | Lessons | Topic                                                                        |
-| -------------------------------------- | ---------------- | ------- | ---------------------------------------------------------------------------- |
-| Módulo 0 — Foundations Lab             | Pixel Art Editor | 1–29    | Language, Canvas, data structures, tooling, TypeScript, tests, lifetime      |
-| Módulo 1 — Flowchart & Diagram Builder | Diagram Builder  | 30–37   | Modelling, lookup vs. spatial indexing, graphs, tests, accessibility, memory |
+| Module                                 | Project          | Lessons | Topic                                                                                                       |
+| -------------------------------------- | ---------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| Módulo 0 — Foundations Lab             | Pixel Art Editor | 1–30    | DOM first, collapse at 16,384 elements, Canvas rescue, data structures, tooling, TypeScript, manual testing |
+| Módulo 1 — Flowchart & Diagram Builder | Diagram Builder  | 31–39   | Modelling, lookup vs. spatial indexing, graphs, Vitest + ESLint, accessibility, memory                      |
 
 Each lesson is motivated by a problem the previous one left open.
 
-### Módulo 0 — Pixel Art Editor (1–29)
+Every module closes its main arc with **one challenge lesson** (`type: 'challenge'`),
+a boss fight that reuses 80% of the structure the learner just built and asks for 20%
+of new reasoning: _El Inspector de Contornos_ (16) and _Radar de Selecciones por
+Proximidad_ (34). Clearing the checks in the playground reveals a card with the
+optional LeetCode equivalent (LC 463/733 and LC 973).
 
-1. **Phase 1 (1–9) — JavaScript Foundations.** Variables, functions, conditionals,
-   loops, arrays, objects, the DOM, pointer events, and finally a deliberate
-   measurement of how far a DOM-based grid scales.
-2. **Phase 2 (10–16) — Canvas & Data Representation.** Escape the DOM, decide where
+### Módulo 0 — Pixel Art Editor (1–30)
+
+1. **Phase 0.1 (1–10) — JavaScript Visual con el DOM.** Variables, functions,
+   conditionals, loops (256 divs), arrays for the palette, objects for the state,
+   DOM `createElement`, pointer events, then the deliberate collapse: 16,384 divs
+   (**El Límite del DOM**) and the Canvas rescue that gets the frame rate back
+   (**El Rescate**).
+2. **Phase 0.2 (11–17) — Estructuras de Datos y Algoritmos Visuales.** Decide where
    a pixel lives (row-major indexing), store it in typed memory (`Uint8Array`),
    fill regions with DFS, hit the recursion limit, replace the call stack with a
-   queue (BFS + head index) and bound undo/FPS history with a ring buffer.
-3. **Module 0.5 (17–20) — Tooling Bridge.** Split the code into ES modules, watch
-   the browser's module waterfall, build a miniature bundler, and only then meet
-   Vite: dev server, HMR and production build.
-4. **Module 0.6 (21–25) — TypeScript Bridge.** Start from real runtime failures
+   queue (BFS + head index), then apply it in the **challenge** _El Inspector de
+   Contornos_ (16: return the border of a region, not its interior) and bound
+   undo/FPS history with a ring buffer.
+3. **Phase 0.5 (18–21) — Tooling Bridge.** Split the code into ES modules, watch
+   the browser's module waterfall in the Network tab, bundle the project with
+   **esbuild** (ten lines in `build.mjs`), and only then meet Vite: dev server, HMR
+   and production build.
+4. **Phase 0.6 (22–26) — TypeScript Bridge.** Start from real runtime failures
    (`node.lable`, `"100"` where a number was expected, a missing property), try
    JSDoc and runtime guards, then add interfaces, unions, optional properties and
    generics.
-5. **Module 0.7 (26–27) — Testing.** Write a minimal test harness and use it on
-   the code from earlier lessons; then test the hard parts — time, randomness and
-   side effects — by injecting them.
-6. **Module 0.8 (28–29) — Lifetime & Closing.** Audit the resources the editor
-   really allocates (debounced timers, listeners, the CodeMirror view), assert
-   with tests that cleanup returns the counts to zero, and close the project with
-   the Definition of Done.
+5. **Phase 0.7 (27–28) — Testing Básico.** Write a minimal test harness by hand and
+   use it on the code from earlier lessons; then test the hard parts — time,
+   randomness and side effects — by injecting them.
+6. **Phase 0.8 (29–30) — Lifetime & Closing.** Audit the resources the editor
+   really allocates (debounced timers, listeners), assert with tests that cleanup
+   returns the counts to zero, and close the project with a **manual** Definition of
+   Done: clean console, pure logic checked by hand, resource audit. No CI and no
+   automated linting yet — that is Módulo 1.
 
-### Módulo 1 — Diagram Builder (30–37), one project
+### Módulo 1 — Diagram Builder (31–39), one project
 
-The second module is a different application on a different stack (Vite +
-TypeScript + Canvas + DOM) that reuses everything the first module built:
+The second module is a different application on a different stack, and the point
+where the course introduces professional local tooling: Vite + TypeScript + Canvas +
+DOM, with **Vitest** for the invariant suite and **ESLint/Prettier** keeping the code
+clean.
 
-1. **30 — Model Before Rendering.** Nodes, connections, selection, tool and canvas
-   state; rendering as a read-only projection of the model.
-2. **31 — Finding Things.** `Array.find` vs. a `Map` index, measured.
-3. **32 — Too Many Nodes.** Hit-testing thousands of nodes: linear scan vs. a
-   spatial hash grid.
-4. **33 — Groups and Connections.** Union-find for connectivity, and its
-   limitation: it merges but cannot split.
-5. **34 — Testing the Structures.** Invariant-based tests for the `Map` index,
-   the spatial grid and union-find.
-6. **35 — The Canvas Needs a Second Representation.** A semantic DOM layer over
-   the canvas: semantic HTML, keyboard navigation, focus management, ARIA.
-7. **36 — Memory Management.** Deliberate listener leaks, `AbortController` and
-   resource lifetime.
-8. **37 — Project Close: Definition of Done.** The same checklist as Lesson 29,
-   applied to a different project with different evidence.
+1. **Phase 1 (31–36) — Model, Access & Scale.** Model before rendering, lookup by
+   id, hit-testing at scale and connectivity:
+   1. **31 — Model Before Rendering.** Nodes, connections, selection, tool and canvas
+      state; rendering as a read-only projection of the model.
+   2. **32 — Finding Things.** `Array.find` vs. a `Map` index, measured.
+   3. **33 — Too Many Nodes.** Hit-testing thousands of nodes: linear scan vs. a
+      spatial hash grid.
+   4. **34 — Radar de Selecciones por Proximidad (challenge).** The circular lasso:
+      turn a radius into a range of cells, filter by euclidean distance and return
+      the nodes nearest-first.
+   5. **35 — Groups and Connections.** Union-find for connectivity, and its
+      limitation: it merges but cannot split.
+   6. **36 — Testing the Structures.** Invariant-based tests for the `Map` index,
+      the spatial grid and union-find — run locally with Vitest.
+2. **Phase 2 (37–38) — Accessibility & Memory.** A semantic DOM layer over the
+   canvas (semantic HTML, keyboard navigation, focus management, `aria-live`), and
+   deliberate listener leaks fixed with `AbortController`.
+3. **Phase 3 (39) — Closing.** The same checklist as Lesson 30 with a higher bar:
+   ESLint and Prettier green, the Vitest suite green, and the hit-testing benchmark
+   measured and documented.
 
 ## Stack
 
@@ -120,7 +143,7 @@ src/
       Preview.svelte                # sandboxed iframe host
     content/pixel-editor/
       lessons.js                    # module + phase tables, metadata index, loaders
-      curriculum/lesson-01.js…31.js # prose + starter code, one chunk per lesson
+      curriculum/lesson-01.js…39.js # prose + starter code, one chunk per lesson
     playground/
       buildSrcDoc.js                # builds the iframe document
       iframeProtocol.js             # postMessage parsing
@@ -175,11 +198,11 @@ imports each lesson chunk on demand. To add a lesson: create the module file, ad
 its `{ id, title }` entry to `lessonList`, add the loader, and extend `phases` —
 plus `modules` when a new project starts.
 
-Lessons 1–9 introduce the language, 10–16 build the pixel editor, 17–20 cover
-modules and build tooling, 21–25 cover TypeScript, and 26–31 build the diagram
-editor. The bridge lessons still run inside the playground: they simulate the
-tooling (or the type checker) with runnable JavaScript so the problem is visible
-before the tool appears.
+Lessons 1–10 introduce the language, 11–17 build the pixel editor (challenge
+included), 18–21 cover modules and build tooling, 22–26 cover TypeScript, and 31–39
+build the diagram editor. The bridge lessons still run inside the playground: they
+simulate the tooling (or the type checker) with runnable JavaScript so the problem is
+visible before the tool appears.
 
 Supported markdown: paragraphs, `##`/`###` headings, fenced code blocks, ordered
 and unordered lists (one level of nesting), tables, `**bold**`, `*italic*`,

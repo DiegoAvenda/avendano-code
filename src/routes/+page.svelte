@@ -37,6 +37,13 @@
 	/**
 	 * @param {(typeof modules)[number]} module
 	 */
+	function challengesOf(module) {
+		return lessonsOf(module).filter((entry) => entry.type === 'challenge').length;
+	}
+
+	/**
+	 * @param {(typeof modules)[number]} module
+	 */
 	function resumeHref(module) {
 		const target =
 			currentLesson >= module.from && currentLesson <= module.to ? currentLesson : module.from;
@@ -90,9 +97,26 @@
 					<header class="flex flex-col gap-1">
 						<h3 class="m-0 text-lg font-bold">{module.label}</h3>
 						<p class="m-0 text-xs text-accent">Project: {module.project}</p>
+						{#if challengesOf(module) > 0}
+							<p class="m-0 text-[11px] text-[#ffd166]">
+								⚔ {challengesOf(module) === 1
+									? '1 reto integrador'
+									: challengesOf(module) + ' retos integradores'}
+							</p>
+						{/if}
 					</header>
 
 					<p class="m-0 text-sm leading-relaxed text-muted">{module.description}</p>
+
+					<ul class="m-0 flex list-none flex-wrap gap-1.5 p-0">
+						{#each module.stack as tool (tool)}
+							<li
+								class="rounded-full border border-line bg-surface-2 px-2 py-0.5 text-[11px] text-muted"
+							>
+								{tool}
+							</li>
+						{/each}
+					</ul>
 
 					<ul class="m-0 flex list-none flex-col gap-1 p-0">
 						{#each phasesOf(module) as phase (phase.id)}

@@ -1,26 +1,26 @@
-// Lesson 9 — Find the Limit
+// Pixel Art Editor — Lesson 9: El Límite del DOM
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 9,
-	title: 'Find the Limit',
-	description: `The editor works. The next question is not "can we draw a grid?" but **"how far does this grid scale?"**
+	title: 'El Límite del DOM',
+	description: `The editor works. The next question is not "can we draw a grid?" but **"what happens when the grid gets big?"**
 
-Every cell in the grid is a real DOM element. The browser has to style it, lay it out and paint it:
+Every cell is a real DOM element, and the browser has to style it, lay it out and paint it:
 
 \`\`\`
-16 × 16   = 256 cells
-64 × 64   = 4,096 cells
+16 × 16   =    256 cells
+128 × 128 = 16,384 cells   ← the challenge
 256 × 256 = 65,536 cells
 \`\`\`
 
-We are not going to claim that the browser "breaks". We are going to measure it and see what the numbers say.`,
-	task: `1. Press 16 × 16, then 32 × 32, then 64 × 64 and watch the build time.
-2. Keep going: 128 × 128 and 256 × 256. Notice what happens to the page while it builds.
-3. Read the node count in the report — it grows with the square of the size.
-4. Open DevTools → Performance and record while you build the 256 × 256 grid.
-5. In the flame chart, find **scripting**, **style calculation**, **layout** and **paint**. Ask: which part would still be there if I were not creating elements at all?`,
+At 16,384 elements the page stops responding while it builds, and **layout** becomes the expensive part of every interaction. We are not going to claim that the browser "breaks": we are going to measure it, watch the flame chart and read the numbers.`,
+	task: `1. Press 16 × 16, then 64 × 64 and watch the build time grow with the square of the size.
+2. Press **128 × 128** — that is 16,384 elements. Try to scroll or type while it builds.
+3. Open DevTools → **Elements** and find those 16,384 nodes. Then → **Layout** and see how long a layout takes.
+4. Open DevTools → Performance and record while you build the grid: **scripting**, **style calculation**, **layout**, **paint**.
+5. Write down which of those costs would disappear if the pixels were not elements at all.`,
 	concept: `**The DOM is a rendering representation, not a data structure.** Each cell is an element with styles, layout and paint work attached to it, so the cost grows with the number of cells — not with the size of the drawing.`,
-	whyItMatters: `Before choosing a technique we should measure. The conclusion is not "my loop is wrong"; it is "my representation generates too much work for the browser". That is the question that will lead us to Canvas.`,
+	whyItMatters: `Before choosing a technique we should measure. The conclusion is not "my loop is wrong"; it is "my representation generates too much work for the browser". That is the question the next lesson answers.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -35,7 +35,7 @@ We are not going to claim that the browser "breaks". We are going to measure it 
     <button class="size-btn" data-size="16">16 × 16</button>
     <button class="size-btn" data-size="32">32 × 32</button>
     <button class="size-btn" data-size="64">64 × 64</button>
-    <button class="size-btn" data-size="128">128 × 128</button>
+    <button class="size-btn" data-size="128">128 × 128 (16,384)</button>
     <button class="size-btn" data-size="256">256 × 256</button>
   </div>
   <p id="report">Pick a size to build the grid and measure it.</p>
@@ -83,7 +83,7 @@ h3 { font-size: 14px; opacity: 0.7; }
 .cell { width: 100%; aspect-ratio: 1; }
 .cell.light { background: #2a2a3e; }
 .cell.dark { background: #1a1a2e; }`,
-		javascript: `// Pixel Art Editor — Lesson 9: Find the Limit
+		javascript: `// Pixel Art Editor — Lesson 9: El Límite del DOM
 
 const gridEl = document.getElementById("grid");
 const reportEl = document.getElementById("report");

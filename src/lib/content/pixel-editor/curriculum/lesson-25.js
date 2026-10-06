@@ -1,32 +1,36 @@
-// Lesson 25 — When Types Meet Reuse
+// Pixel Art Editor — Lesson 25: Make the Contract Useful
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 25,
-	title: 'When Types Meet Reuse',
-	description: `The last question is a reuse question: **what if the same logic has to work with different types of data?**
+	title: 'Make the Contract Useful',
+	description: `Types are not only about protecting variables. Their real value appears at the **boundaries between parts of the program**: rendering, tools, editor state.
 
-Undo history stores points, the palette stores colors, the diagram stores nodes. A function like "give me the first item" does not care what the items are:
+Two type ideas do most of that work.
 
-\`\`\`
-function first<T>(items: T[]): T
-\`\`\`
-
-The \`T\` is a **type parameter**: a placeholder that the caller fills in. When you call \`first(numbers)\` the result is a \`number\`; when you call \`first(nodes)\` the result is a \`Node\`. The logic is written once and the type information is preserved at every call site:
+**Unions** describe a value that can be exactly one of a known set:
 
 \`\`\`
-first([1, 2, 3])        → number
-first(["a", "b"])       → string
-first([node1, node2])   → Node   (so node1.id is still checked)
+type Tool = "pencil" | "eraser" | "bucket";
+type EditorState =
+  | { kind: "idle" }
+  | { kind: "drawing"; stroke: number[] }
+  | { kind: "filling"; region: number[] };
 \`\`\`
 
-Generics appear here for the same reason everything else appeared: a real problem — reuse without losing the contract — not as abstract syntax to memorise.`,
-	task: `1. Press **Run**. \`first\` is called with numbers, strings and node objects.
-2. Look at the log: the same function keeps the type of whatever it received.
-3. Find \`last\` — a second generic function reusing the same idea.
-4. Press **Show the wrong call**: \`first(items)\` on a non-array is rejected, and an object without \`id\` is flagged where it is used.
-5. Ask yourself the closing question of the module: which parts of your own project would benefit from a contract, and which are better left flexible?`,
-	concept: `**Generics** — functions and structures parameterised by a type, so logic is written once while the type information travels with the data and is still checked at every call site.`,
-	whyItMatters: `Generic code is how a small, reusable core stays type-safe as a project grows. It closes the TypeScript bridge: you now have types, interfaces, unions, optional properties and generics — each one introduced by a problem you felt first.`,
+**Optional properties** describe what may be absent:
+
+\`\`\`
+interface Node { id: string; x: number; y: number; label?: string }
+\`\`\`
+
+With those in place, impossible states stop being possible: a tool can only be one of three strings, a state can only be \`idle\`, \`drawing\` or \`filling\`, and the compiler makes you handle every case.`,
+	task: `1. Press **Run the state machine** and follow the log: each state transition is checked against the union.
+2. Press **Try an impossible state** — \`kind: "exporting"\` is not part of the union, so it is rejected before anything runs.
+3. Try setting the tool to \`"spray"\` and see the union reject it.
+4. Notice the optional \`label\`: the code checks for its absence before using it.
+5. Find the \`default\` branch in \`describe\`. Its only job is to make a new state impossible to forget in a real type checker.`,
+	concept: `**Unions, optional properties and discriminated unions** — describing exactly which values are legal, so the compiler can prove that every case is handled and impossible states are rejected.`,
+	whyItMatters: `This is where types start modelling the domain instead of only the variables. A tool that can be "pencil | eraser | bucket" cannot silently become "spray"; a drawing state cannot be confused with a filling state. The contract now protects the design of the editor itself.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -36,12 +40,12 @@ Generics appear here for the same reason everything else appeared: a real proble
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>When types meet reuse — generics</h3>
+  <h3>Make the contract useful</h3>
   <div id="controls">
-    <button id="run-btn">Run</button>
-    <button id="bad-btn">Show the wrong call</button>
+    <button id="run-btn">Run the state machine</button>
+    <button id="bad-btn">Try an impossible state</button>
   </div>
-  <pre id="report">Press Run to reuse one function across three types.</pre>
+  <pre id="report">Press Run to walk through the editor states.</pre>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -80,98 +84,102 @@ h3 { font-size: 14px; opacity: 0.7; }
   white-space: pre;
   min-width: 620px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 25: When Types Meet Reuse
+		javascript: `// Pixel Art Editor — Lesson 25: Make the Contract Useful
 
 const reportEl = document.getElementById("report");
 
-// Generic in spirit: "give me the first item of a list of T".
-// function first<T>(items: T[]): T
-function first(items) {
-  if (!Array.isArray(items)) {
-    throw new TypeError("first(expected T[], received " + typeof items + ")");
+// ── Unions: a value that can be exactly one of these ──
+const TOOLS = ["pencil", "eraser", "bucket"];
+const STATE_KINDS = ["idle", "drawing", "filling"];
+
+function checkTool(tool) {
+  if (!TOOLS.includes(tool)) {
+    throw new TypeError(
+      'Tool must be "pencil" | "eraser" | "bucket", received ' + JSON.stringify(tool)
+    );
   }
-  if (items.length === 0) return undefined;
-  return items[0];
+  return tool;
 }
 
-// A second reuse of the same idea: the top of a bounded stack.
-// function last<T>(items: T[]): T | undefined
-function last(items) {
-  if (!Array.isArray(items)) {
-    throw new TypeError("last(expected T[], received " + typeof items + ")");
+function checkState(state) {
+  if (!STATE_KINDS.includes(state.kind)) {
+    throw new TypeError(
+      'EditorState.kind must be "idle" | "drawing" | "filling", received ' +
+        JSON.stringify(state.kind)
+    );
   }
-  return items[items.length - 1];
+  if (state.kind === "drawing" && !Array.isArray(state.stroke)) {
+    throw new TypeError("A drawing state must carry a stroke array");
+  }
+  if (state.kind === "filling" && !Array.isArray(state.region)) {
+    throw new TypeError("A filling state must carry a region array");
+  }
+  return state;
 }
 
-// A tiny generic container, used the same way for frame times or for nodes.
-function createBuffer(capacity) {
-  const items = [];
-  return {
-    push(item) {
-      items.push(item);
-      if (items.length > capacity) items.shift();
-    },
-    first: () => first(items),
-    last: () => last(items),
-    get size() { return items.length; }
-  };
+// ── Optional properties: label may simply not be there ──
+function describeNode(node) {
+  const label = node.label === undefined ? "(no label)" : node.label;
+  return "#" + node.id + " " + label;
 }
 
-function describe(value) {
-  if (value === undefined) return "undefined";
-  if (value === null) return "null";
-  if (Array.isArray(value)) return "Array(" + value.length + ")";
-  return typeof value + " · " + JSON.stringify(value);
+// ── The state machine ──
+function describe(state) {
+  checkState(state);
+
+  switch (state.kind) {
+    case "idle":
+      return "idle — waiting for input";
+    case "drawing":
+      return "drawing a stroke of " + state.stroke.length + " pixels";
+    case "filling":
+      return "filling a region of " + state.region.length + " pixels";
+    default:
+      // In TypeScript this branch is unreachable: every member is handled.
+      throw new Error("Unhandled state: " + state.kind);
+  }
 }
 
 document.getElementById("run-btn").addEventListener("click", () => {
-  const numbers = [10, 20, 30];
-  const strings = ["pencil", "eraser", "bucket"];
-  const nodes = [
-    { id: "a1", x: 100, y: 200 },
-    { id: "b2", x: 40, y: 90 }
-  ];
+  const lines = [];
 
-  const history = createBuffer(100);
-  history.push({ id: "a1", x: 100, y: 200 });
-  history.push({ id: "b2", x: 40, y: 90 });
-
-  const lines = [
-    "first([10, 20, 30])        → " + describe(first(numbers)),
-    "first([\\"pencil\\", …])       → " + describe(first(strings)),
-    "first([node1, node2])      → " + describe(first(nodes)),
-    "last([10, 20, 30])         → " + describe(last(numbers)),
-    "buffer.last()              → " + describe(history.last()),
-    "buffer.first().id          → " + (history.first() ? history.first().id : "n/a")
-  ];
+  lines.push("tool = " + checkTool("pencil"));
+  lines.push(describe({ kind: "idle" }));
+  lines.push(describe({ kind: "drawing", stroke: [12, 13, 14, 15] }));
+  lines.push(describe({ kind: "filling", region: [1, 2, 3] }));
+  lines.push("node " + describeNode({ id: "a1", x: 10, y: 20, label: "Start" }));
+  lines.push("node " + describeNode({ id: "b2", x: 30, y: 40 }));
 
   reportEl.textContent =
-    "one function, three types — the type travels with the value\\n\\n" +
-    lines.map((line) => "  " + line).join("\\n") +
-    "\\n\\nwith generics the compiler keeps the type at every\\n" +
-    "call site, so node.id is still checked.";
+    "every transition checked against the union\\n\\n" +
+    lines.map((line) => "  ✓ " + line).join("\\n") +
+    "\\n\\nthe union only allows idle | drawing | filling,\\n" +
+    "and label is allowed to be absent.";
 
   console.log(lines.join("\\n"));
 });
 
 document.getElementById("bad-btn").addEventListener("click", () => {
-  const lines = [];
+  const attempts = [
+    () => checkTool("spray"),
+    () => describe({ kind: "exporting" }),
+    () => checkState({ kind: "drawing" })
+  ];
 
-  try {
-    first("not an array");
-    lines.push("  ✓ accepted (this should not happen)");
-  } catch (error) {
-    lines.push("  ✗ " + error.message);
-  }
-
-  lines.push("  ✗ property 'lable' does not exist on type Node");
-  lines.push("  ✗ Argument of type 'string' is not assignable to parameter of type 'number'");
+  const lines = attempts.map((attempt) => {
+    try {
+      attempt();
+      return "  ✓ accepted (this should not happen)";
+    } catch (error) {
+      return "  ✗ " + error.message;
+    }
+  });
 
   reportEl.textContent =
-    "the contract still applies inside generic code\\n\\n" +
+    "impossible states rejected before running\\n\\n" +
     lines.join("\\n") +
-    "\\n\\nreuse without losing the type information:\\n" +
-    "that is what generics are for.";
+    "\\n\\nthese are not runtime surprises: they are\\n" +
+    "type errors the compiler catches for you.";
 
   console.log(lines.join("\\n"));
 });`

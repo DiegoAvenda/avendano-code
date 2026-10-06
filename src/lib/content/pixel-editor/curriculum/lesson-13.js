@@ -1,4 +1,4 @@
-// Lesson 13 — Fill the Area
+// Pixel Art Editor — Lesson 13: Fill the Area
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 13,

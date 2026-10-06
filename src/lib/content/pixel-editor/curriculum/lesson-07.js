@@ -1,4 +1,4 @@
-// Lesson 7 — Talk to the Page
+// Pixel Art Editor — Lesson 7: Talk to the Page
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 7,
