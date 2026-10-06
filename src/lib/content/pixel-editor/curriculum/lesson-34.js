@@ -1,10 +1,10 @@
-// Diagram Builder — Lesson 34: Radar de Selecciones por Proximidad
+// Diagram Builder — Lesson 34: Proximity Selection Radar
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 34,
-	title: 'Radar de Selecciones por Proximidad',
+	title: 'Proximity Selection Radar',
 	type: 'challenge',
-	description: `**Reto integrador (boss fight).** The spatial hash grid from the previous lesson answers "which node is under this point?". The selection tool needs a harder question: **"which nodes are inside this circle?"** — a circular lasso of radius \`R\` around the cursor.
+	description: `**Integrative challenge (boss fight).** The spatial hash grid from the previous lesson answers "which node is under this point?". The selection tool needs a harder question: **"which nodes are inside this circle?"** — a circular lasso of radius \`R\` around the cursor.
 
 The naive answer is to check every node. You already know why that does not scale: the grid exists so that a query only touches the cells the circle can reach.
 
@@ -45,7 +45,7 @@ The checks verify three things: that you return exactly the nodes inside the cir
   <pre id="report">Implement getNodesInRadius and press Run the checks.</pre>
   <section id="card" hidden>
     <h4>Challenge cleared</h4>
-    <p><strong>Conexión con Entrevistas:</strong> Has implementado una optimización espacial que resuelve el núcleo de <strong>LC 973 (K Closest Points to Origin)</strong>. ¡Pon a prueba tu lógica en LeetCode!</p>
+    <p><strong>Interview Connection:</strong> You have implemented a spatial optimization at the core of <strong>LC 973 (K Closest Points to Origin)</strong>. Put your logic to the test on LeetCode!</p>
   </section>
   <script src="script.js"></script>
 </body>
@@ -110,7 +110,7 @@ h3 { font-size: 13px; opacity: 0.7; }
   letter-spacing: 0.5px;
   color: #48dbfb;
 }`,
-		javascript: `// Diagram Builder — Lesson 34: Radar de Selecciones por Proximidad
+		javascript: `// Diagram Builder — Lesson 34: Proximity Selection Radar
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");

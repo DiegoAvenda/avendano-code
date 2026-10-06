@@ -22,29 +22,29 @@ player, the same playground and the same progress store:
 
 | Module                                 | Project          | Lessons | Topic                                                                                                       |
 | -------------------------------------- | ---------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| Módulo 0 — Foundations Lab             | Pixel Art Editor | 1–30    | DOM first, collapse at 16,384 elements, Canvas rescue, data structures, tooling, TypeScript, manual testing |
-| Módulo 1 — Flowchart & Diagram Builder | Diagram Builder  | 31–39   | Modelling, lookup vs. spatial indexing, graphs, Vitest + ESLint, accessibility, memory                      |
+| Module 0 — Foundations Lab             | Pixel Art Editor | 1–30    | DOM first, collapse at 16,384 elements, Canvas rescue, data structures, tooling, TypeScript, manual testing |
+| Module 1 — Flowchart & Diagram Builder | Diagram Builder  | 31–39   | Modelling, lookup vs. spatial indexing, graphs, Vitest + ESLint, accessibility, memory                      |
 
 Each lesson is motivated by a problem the previous one left open.
 
 Every module closes its main arc with **one challenge lesson** (`type: 'challenge'`),
 a boss fight that reuses 80% of the structure the learner just built and asks for 20%
-of new reasoning: _El Inspector de Contornos_ (16) and _Radar de Selecciones por
-Proximidad_ (34). Clearing the checks in the playground reveals a card with the
+of new reasoning: _The Border Inspector_ (16) and _Proximity Selection Radar_
+(34). Clearing the checks in the playground reveals a card with the
 optional LeetCode equivalent (LC 463/733 and LC 973).
 
-### Módulo 0 — Pixel Art Editor (1–30)
+### Module 0 — Pixel Art Editor (1–30)
 
-1. **Phase 0.1 (1–10) — JavaScript Visual con el DOM.** Variables, functions,
+1. **Phase 0.1 (1–10) — Visual JavaScript with the DOM.** Variables, functions,
    conditionals, loops (256 divs), arrays for the palette, objects for the state,
    DOM `createElement`, pointer events, then the deliberate collapse: 16,384 divs
-   (**El Límite del DOM**) and the Canvas rescue that gets the frame rate back
-   (**El Rescate**).
-2. **Phase 0.2 (11–17) — Estructuras de Datos y Algoritmos Visuales.** Decide where
+   (**The DOM Limit**) and the Canvas rescue that gets the frame rate back
+   (**The Rescue**).
+2. **Phase 0.2 (11–17) — Visual Data Structures and Algorithms.** Decide where
    a pixel lives (row-major indexing), store it in typed memory (`Uint8Array`),
    fill regions with DFS, hit the recursion limit, replace the call stack with a
-   queue (BFS + head index), then apply it in the **challenge** _El Inspector de
-   Contornos_ (16: return the border of a region, not its interior) and bound
+   queue (BFS + head index), then apply it in the **challenge** _The Border
+   Inspector_ (16: return the border of a region, not its interior) and bound
    undo/FPS history with a ring buffer.
 3. **Phase 0.5 (18–21) — Tooling Bridge.** Split the code into ES modules, watch
    the browser's module waterfall in the Network tab, bundle the project with
@@ -54,16 +54,16 @@ optional LeetCode equivalent (LC 463/733 and LC 973).
    (`node.lable`, `"100"` where a number was expected, a missing property), try
    JSDoc and runtime guards, then add interfaces, unions, optional properties and
    generics.
-5. **Phase 0.7 (27–28) — Testing Básico.** Write a minimal test harness by hand and
+5. **Phase 0.7 (27–28) — Basic Testing.** Write a minimal test harness by hand and
    use it on the code from earlier lessons; then test the hard parts — time,
    randomness and side effects — by injecting them.
 6. **Phase 0.8 (29–30) — Lifetime & Closing.** Audit the resources the editor
    really allocates (debounced timers, listeners), assert with tests that cleanup
    returns the counts to zero, and close the project with a **manual** Definition of
    Done: clean console, pure logic checked by hand, resource audit. No CI and no
-   automated linting yet — that is Módulo 1.
+   automated linting yet — that is Module 1.
 
-### Módulo 1 — Diagram Builder (31–39), one project
+### Module 1 — Diagram Builder (31–39), one project
 
 The second module is a different application on a different stack, and the point
 where the course introduces professional local tooling: Vite + TypeScript + Canvas +
@@ -77,7 +77,7 @@ clean.
    2. **32 — Finding Things.** `Array.find` vs. a `Map` index, measured.
    3. **33 — Too Many Nodes.** Hit-testing thousands of nodes: linear scan vs. a
       spatial hash grid.
-   4. **34 — Radar de Selecciones por Proximidad (challenge).** The circular lasso:
+   4. **34 — Proximity Selection Radar (challenge).** The circular lasso:
       turn a radius into a range of cells, filter by euclidean distance and return
       the nodes nearest-first.
    5. **35 — Groups and Connections.** Union-find for connectivity, and its

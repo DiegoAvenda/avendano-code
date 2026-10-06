@@ -15,7 +15,7 @@ Right now you have no tooling. No npm scripts, no linter, no test runner — eve
 
 That is deliberately all of it. There is no CI, no automated lint, no report: the evidence is what you can run and read yourself in this page. The checklist is not weaker for that — it is the honest version of "done" for the tools you have.
 
-The bar is what changes later. In Módulo 1 the same intent — evidence, not opinions — is met with a real local toolchain: Vitest for the invariant suite, ESLint and Prettier to keep the code clean.`,
+The bar is what changes later. In Module 1 the same intent — evidence, not opinions — is met with a real local toolchain: Vitest for the invariant suite, ESLint and Prettier to keep the code clean.`,
 	task: `1. Press **Run the checklist** and read the three items.
 2. Press **Break it**: it throws an intentional error and leaves a timer nobody releases.
 3. Watch the checklist go red — and watch the console fill up. That first item is doing its job.

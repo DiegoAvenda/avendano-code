@@ -3,7 +3,7 @@
 export default {
 	id: 31,
 	title: 'Model Before Rendering',
-	description: `Módulo 1 is a different project: a **Flowchart & Diagram Builder**. Different stack, different data, but the same discipline we used for the pixel editor — and it starts one step earlier.
+	description: `Module 1 is a different project: a **Flowchart & Diagram Builder**. Different stack, different data, but the same discipline we used for the pixel editor — and it starts one step earlier.
 
 Do not start by drawing rectangles. Start with the model:
 

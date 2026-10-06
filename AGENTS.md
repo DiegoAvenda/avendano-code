@@ -43,8 +43,7 @@ live in `package.json`; read them there instead of assuming.
 7. **Do not add dependencies without discussing it.** The markdown renderer and the test
    setup are dependency-free on purpose.
 8. **Language:** the user talks to you in Spanish, so answer in Spanish. Everything in the
-   repository (UI text, comments, tests, README, lesson prose) is English. Only the module
-   labels keep their Spanish names (`Módulo 0 — Foundations Lab`).
+   repository (UI text, comments, tests, README, lesson prose, module labels) is English.
 9. **Context discipline.** Do not read the whole repository. Start from the file the task
    points to (section 8), and read only what the change needs. In particular, do not open
    all `curriculum/lesson-NN.js` files unless the task is about all of them.
@@ -123,7 +122,7 @@ curriculum structure and exports:
 - `modules`: the projects, each
   `{ id, label, short, project, stack, description, from, to }`
 - `phases`: the labelled stretches inside a module, each `{ id, label, from, to }`.
-  Módulo 0 numbers them `Phase 0.x`; Módulo 1 uses `Phase 1…3`.
+  Module 0 numbers them `Phase 0.x`; Module 1 uses `Phase 1…3`.
 - `lessonList`: metadata only, `{ id, title }` per lesson
 - `loaders`: `{ id: () => import('./curriculum/lesson-NN.js') }`
 - `loadLesson(id)` / `loadAllLessons()` / `getModule(id)` / `getPhaseLabel(id)`
@@ -191,8 +190,8 @@ Conventions:
   model, and a checker with fixed cases; the learner only writes the function body;
 - the checker grades the result and, when every case passes, reveals a card
   (`#card`) that links the pattern to its optional LeetCode equivalent;
-- the prose starts with **"Reto integrador (boss fight)"**, which the test suite
-  asserts, and the UI shows a `Reto integrador` badge on the lesson plus a distinct
+- the prose starts with **"Integrative challenge (boss fight)"**, which the test suite
+  asserts, and the UI shows a `Integrative challenge` badge on the lesson plus a distinct
   progress dot.
 
 `tests/lessons.test.js` enforces that each challenge is flagged in both places, that

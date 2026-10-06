@@ -1,8 +1,8 @@
-// Pixel Art Editor — Lesson 10: El Rescate (Canvas)
+// Pixel Art Editor — Lesson 10: The Rescue (Canvas)
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 10,
-	title: 'El Rescate (Canvas)',
+	title: 'The Rescue (Canvas)',
 	description: `We measured the DOM grid and we know its cost: 16,384 elements, seconds of layout, a page that stops responding. Now we rescue the editor with a second way to render the same thing: **Canvas**.
 
 With Canvas the browser gives us a bitmap and a drawing API. Nothing in the page represents a pixel any more — we ask for rectangles and the browser paints them:
@@ -85,7 +85,7 @@ h3 { font-size: 14px; opacity: 0.7; }
 }
 .cell.light { background: #2a2a3e; }
 .cell.dark { background: #1a1a2e; }`,
-		javascript: `// Pixel Art Editor — Lesson 10: El Rescate (Canvas)
+		javascript: `// Pixel Art Editor — Lesson 10: The Rescue (Canvas)
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");

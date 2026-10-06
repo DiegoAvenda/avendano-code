@@ -6,8 +6,8 @@
  * challenge lesson (`type: 'challenge'`): 80% of the structure the learner just
  * built, 20% of new reasoning.
  *
- *   Módulo 0 — Foundations Lab        · Pixel Art Editor        (lessons 1–30)
- *   Módulo 1 — Flowchart & Diagram    · Diagram Builder         (lessons 31–39)
+ *   Module 0 — Foundations Lab        · Pixel Art Editor        (lessons 1–30)
+ *   Module 1 — Flowchart & Diagram    · Diagram Builder         (lessons 31–39)
  *
  * This module ships only lesson *metadata* (id + title + optional type) plus the
  * module and phase tables. The prose and starter code for each lesson live in
@@ -17,8 +17,8 @@
 export const modules = [
 	{
 		id: 'foundations',
-		label: 'Módulo 0 — Foundations Lab',
-		short: 'Módulo 0 · Foundations Lab',
+		label: 'Module 0 — Foundations Lab',
+		short: 'Module 0 · Foundations Lab',
 		project: 'Pixel Art Editor',
 		stack: ['JavaScript', 'DOM', 'Canvas 2D', 'Uint8Array', 'ES Modules', 'Vite', 'TypeScript'],
 		description:
@@ -28,8 +28,8 @@ export const modules = [
 	},
 	{
 		id: 'diagram',
-		label: 'Módulo 1 — Flowchart & Diagram Builder',
-		short: 'Módulo 1 · Diagram Builder',
+		label: 'Module 1 — Flowchart & Diagram Builder',
+		short: 'Module 1 · Diagram Builder',
 		project: 'Diagram Builder',
 		stack: ['Vite', 'TypeScript', 'Vitest', 'ESLint', 'Prettier', 'Canvas 2D', 'DOM'],
 		description:
@@ -44,11 +44,11 @@ export const modules = [
  * lessons only requires editing this table.
  */
 export const phases = [
-	{ id: 1, label: 'Phase 0.1: JavaScript Visual con el DOM', from: 1, to: 10 },
-	{ id: 2, label: 'Phase 0.2: Estructuras de Datos y Algoritmos Visuales', from: 11, to: 17 },
+	{ id: 1, label: 'Phase 0.1: Visual JavaScript with the DOM', from: 1, to: 10 },
+	{ id: 2, label: 'Phase 0.2: Visual Data Structures and Algorithms', from: 11, to: 17 },
 	{ id: 3, label: 'Phase 0.5: Tooling Bridge', from: 18, to: 21 },
 	{ id: 4, label: 'Phase 0.6: TypeScript Bridge', from: 22, to: 26 },
-	{ id: 5, label: 'Phase 0.7: Testing Básico', from: 27, to: 28 },
+	{ id: 5, label: 'Phase 0.7: Basic Testing', from: 27, to: 28 },
 	{ id: 6, label: 'Phase 0.8: Lifetime & Closing', from: 29, to: 30 },
 	{ id: 7, label: 'Phase 1: Model, Access & Scale', from: 31, to: 36 },
 	{ id: 8, label: 'Phase 2: Accessibility & Memory', from: 37, to: 38 },
@@ -77,7 +77,7 @@ export function getModule(lessonId) {
  * `type: 'challenge'` marks the boss fight that closes each module's main arc.
  */
 export const lessonList = [
-	// Módulo 0 — Pixel Art Editor
+	// Module 0 — Pixel Art Editor
 	{ id: 1, title: 'Your First Pixel' },
 	{ id: 2, title: 'Give the Code a Job' },
 	{ id: 3, title: 'Make Decisions' },
@@ -86,18 +86,18 @@ export const lessonList = [
 	{ id: 6, title: 'Describe Things' },
 	{ id: 7, title: 'Talk to the Page' },
 	{ id: 8, title: 'Listen to the User' },
-	{ id: 9, title: 'El Límite del DOM' },
-	{ id: 10, title: 'El Rescate (Canvas)' },
+	{ id: 9, title: 'The DOM Limit' },
+	{ id: 10, title: 'The Rescue (Canvas)' },
 	{ id: 11, title: 'Where Does a Pixel Live?' },
 	{ id: 12, title: 'Typed Memory' },
 	{ id: 13, title: 'Fill the Area' },
 	{ id: 14, title: 'Find the Recursion Limit' },
 	{ id: 15, title: 'Queue It' },
-	{ id: 16, title: 'El Inspector de Contornos', type: 'challenge' },
+	{ id: 16, title: 'The Border Inspector', type: 'challenge' },
 	{ id: 17, title: 'Bounded History' },
 	{ id: 18, title: 'Split the Code' },
 	{ id: 19, title: 'The Browser Is Already a Module System' },
-	{ id: 20, title: 'El Puente de esbuild' },
+	{ id: 20, title: 'The esbuild Bridge' },
 	{ id: 21, title: 'Why Vite?' },
 	{ id: 22, title: 'JavaScript Starts Fighting Back' },
 	{ id: 23, title: 'Contracts Without TypeScript' },
@@ -108,11 +108,11 @@ export const lessonList = [
 	{ id: 28, title: 'Testing the Hard Parts' },
 	{ id: 29, title: 'Memory I: Lifetime & Cleanup' },
 	{ id: 30, title: 'Project Close: Definition of Done' },
-	// Módulo 1 — Diagram Builder
+	// Module 1 — Diagram Builder
 	{ id: 31, title: 'Model Before Rendering' },
 	{ id: 32, title: 'Finding Things' },
 	{ id: 33, title: 'Too Many Nodes' },
-	{ id: 34, title: 'Radar de Selecciones por Proximidad', type: 'challenge' },
+	{ id: 34, title: 'Proximity Selection Radar', type: 'challenge' },
 	{ id: 35, title: 'Groups and Connections' },
 	{ id: 36, title: 'Testing the Structures' },
 	{ id: 37, title: 'The Canvas Needs a Second Representation' },

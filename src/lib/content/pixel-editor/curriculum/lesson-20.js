@@ -1,8 +1,8 @@
-// Pixel Art Editor — Lesson 20: El Puente de esbuild
+// Pixel Art Editor — Lesson 20: The esbuild Bridge
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 20,
-	title: 'El Puente de esbuild',
+	title: 'The esbuild Bridge',
 	description: `We felt the problem in the previous lesson. The browser loads every module with its own request, and it cannot start a module before its imports arrive:
 
 \`\`\`
@@ -136,7 +136,7 @@ h3 { font-size: 14px; opacity: 0.7; }
   min-height: 56px;
   max-width: 660px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 20: El Puente de esbuild
+		javascript: `// Pixel Art Editor — Lesson 20: The esbuild Bridge
 
 const graphEl = document.getElementById("graph");
 const bundleEl = document.getElementById("bundle");

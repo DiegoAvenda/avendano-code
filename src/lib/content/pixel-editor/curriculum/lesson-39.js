@@ -5,7 +5,7 @@ export default {
 	title: 'Project Close: Definition of Done',
 	description: `Same checklist, different tools — and that is the whole point of closing this module.
 
-In Módulo 0 "done" had to be verified by hand, because there was no tooling: a clean console, logic checked with your own assertions, a resource audit you ran yourself. This project lives in a real local toolchain instead, so the bar moves up:
+In Module 0 "done" had to be verified by hand, because there was no tooling: a clean console, logic checked with your own assertions, a resource audit you ran yourself. This project lives in a real local toolchain instead, so the bar moves up:
 
 \`\`\`
 1. Linter & formatter   ESLint + Prettier green on your machine
@@ -16,10 +16,10 @@ In Módulo 0 "done" had to be verified by hand, because there was no tooling: a 
 Two of those are tools you run in the terminal, not sentences in a lesson. The third is a measurement: the spatial grid only earns its place if the numbers say so.`,
 	task: `1. Press **Run the checklist** — it executes the same assertions your Vitest suite runs, plus the hit-testing benchmark.
 2. Mark the two items that depend on your machine: ESLint and Prettier green, and the benchmark numbers written down.
-3. Compare with the closing report of Módulo 0 (Lesson 29): there, everything was manual.
+3. Compare with the closing report of Module 0 (Lesson 29): there, everything was manual.
 4. If any assertion fails, fix the structure before closing the project.
 5. Ask what would have to be automated next: a pipeline that runs these three on every push.`,
-	concept: `**The checklist escalates with the toolchain** — the intent (evidence, not opinions) never changes; the tools that produce the evidence do. Manual in Módulo 0, local tooling in Módulo 1.`,
+	concept: `**The checklist escalates with the toolchain** — the intent (evidence, not opinions) never changes; the tools that produce the evidence do. Manual in Module 0, local tooling in Module 1.`,
 	whyItMatters: `Closing a project with tools instead of with your eyes is the difference between "I think it works" and "the tool says it works". It is also the moment the course stops depending on you remembering to check.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
@@ -223,7 +223,7 @@ function runChecklist() {
     lines.join("\\n") + "\\n\\n" +
     done + " of " + results.length + " requirements pass — " +
     (done === results.length ? "DONE" : "NOT DONE") +
-    "\\n\\nin Módulo 0 this same checklist was verified by hand.\\n" +
+    "\\n\\nIn Module 0 this same checklist was verified by hand.\\n" +
     "Here two of the three come from local tools.";
 
   console.log("Definition of Done (local toolchain):", done + "/" + results.length);

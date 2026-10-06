@@ -82,7 +82,7 @@ test('challenge lessons are flagged in both the index and the content', () => {
 		const lesson = lessons.find((candidate) => candidate.id === entry.id);
 		assert.equal(lesson.type, 'challenge', `lesson ${entry.id} should carry type: 'challenge'`);
 		assert.ok(
-			lesson.description.includes('Reto integrador'),
+			lesson.description.includes('Integrative challenge'),
 			`challenge lesson ${entry.id} should announce itself in its prose`
 		);
 	}

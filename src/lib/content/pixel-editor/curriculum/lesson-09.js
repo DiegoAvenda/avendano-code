@@ -1,8 +1,8 @@
-// Pixel Art Editor — Lesson 9: El Límite del DOM
+// Pixel Art Editor — Lesson 9: The DOM Limit
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 9,
-	title: 'El Límite del DOM',
+	title: 'The DOM Limit',
 	description: `The editor works. The next question is not "can we draw a grid?" but **"what happens when the grid gets big?"**
 
 Every cell is a real DOM element, and the browser has to style it, lay it out and paint it:
@@ -83,7 +83,7 @@ h3 { font-size: 14px; opacity: 0.7; }
 .cell { width: 100%; aspect-ratio: 1; }
 .cell.light { background: #2a2a3e; }
 .cell.dark { background: #1a1a2e; }`,
-		javascript: `// Pixel Art Editor — Lesson 9: El Límite del DOM
+		javascript: `// Pixel Art Editor — Lesson 9: The DOM Limit
 
 const gridEl = document.getElementById("grid");
 const reportEl = document.getElementById("report");

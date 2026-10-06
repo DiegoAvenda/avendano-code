@@ -1,10 +1,10 @@
-// Pixel Art Editor — Lesson 16: El Inspector de Contornos
+// Pixel Art Editor — Lesson 16: The Border Inspector
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 16,
-	title: 'El Inspector de Contornos',
+	title: 'The Border Inspector',
 	type: 'challenge',
-	description: `**Reto integrador (boss fight).** You already built the two halves of this: a flat pixel buffer (\`Uint8Array\`, row-major) and a queue that walks a region without recursion. Now use them for something that is **not** filling.
+	description: `**Integrative challenge (boss fight).** You already built the two halves of this: a flat pixel buffer (\`Uint8Array\`, row-major) and a queue that walks a region without recursion. Now use them for something that is **not** filling.
 
 The editor needs a "selection outline": when the user clicks a shape, we want the **outer border** of that shape, not its interior. The border of a region is made of the pixels that have at least one 4-directional neighbour *outside* the region — either a different colour, or past the edge of the canvas:
 
@@ -55,7 +55,7 @@ Return the **1D indices** of the border pixels. The colour of the region is what
   <pre id="report">Implement getRegionBorder and press Run the checks.</pre>
   <section id="card" hidden>
     <h4>Challenge cleared</h4>
-    <p><strong>Conexión con Entrevistas:</strong> Este patrón es la base del problema <strong>LC 463 (Island Perimeter)</strong> y <strong>LC 733 (Flood Fill)</strong>. ¡Intenta resolverlos con lo que acabas de aprender!</p>
+    <p><strong>Interview Connection:</strong> This pattern is the basis of <strong>LC 463 (Island Perimeter)</strong> and <strong>LC 733 (Flood Fill)</strong>. Try solving them with what you just learned!</p>
   </section>
   <script src="script.js"></script>
 </body>
@@ -119,7 +119,7 @@ h3 { font-size: 14px; opacity: 0.7; }
   letter-spacing: 0.5px;
   color: #48dbfb;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 16: El Inspector de Contornos
+		javascript: `// Pixel Art Editor — Lesson 16: The Border Inspector
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");

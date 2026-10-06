@@ -7,17 +7,17 @@
  * History of the lesson numbering:
  *   v1 (unversioned)  lessons 1–10   the original pixel editor curriculum
  *   v2                lessons 1–19   the curriculum grew, old 1–10 → 10–19
- *   v3                lessons 1–37   Módulo 0 grew to 29 lessons, so the diagram
+ *   v3                lessons 1–37   Module 0 grew to 29 lessons, so the diagram
  *                                    module moved from 26–31 to 30–35
  *   v4                lessons 1–39   two challenge lessons were inserted: after
- *                                    15 (Módulo 0) and after 33 (Módulo 1)
+ *                                    15 (Module 0) and after 33 (Module 1)
  */
 
 export const STORAGE_VERSION = 4;
 
 /** In v2 the diagram module started here. */
 export const MODULE_SHIFT_FROM = 26;
-/** How far those lessons moved when Módulo 0 was extended. */
+/** How far those lessons moved when Module 0 was extended. */
 export const MODULE_SHIFT_BY = 4;
 
 /** v4: the first challenge lands after this lesson… */

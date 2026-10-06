@@ -3,7 +3,7 @@
 export default {
 	id: 36,
 	title: 'Testing the Structures',
-	description: `In Módulo 0 you wrote your own test harness: eleven lines, no dependencies, and it was the right tool for what it tested — pure functions like the index math or the ring buffer.
+	description: `In Module 0 you wrote your own test harness: eleven lines, no dependencies, and it was the right tool for what it tested — pure functions like the index math or the ring buffer.
 
 These structures are a different story:
 

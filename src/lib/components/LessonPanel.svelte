@@ -21,7 +21,7 @@
 				<span
 					class="rounded-full border border-[#ffd166] px-2 py-0.5 text-[11px] font-semibold tracking-[0.08em] text-[#ffd166] uppercase"
 				>
-					Reto integrador
+					Integrative challenge
 				</span>
 			{/if}
 		</div>
