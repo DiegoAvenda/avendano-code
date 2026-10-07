@@ -155,22 +155,30 @@ tests/                              # node:test suites
 
 ## Styling
 
-All app styling is Tailwind. `src/routes/layout.css` is the single entry point:
+All app styling is Tailwind, themed as a cyberpunk terminal. `src/routes/layout.css`
+is the single entry point:
 
 ```css
 @import 'tailwindcss';
+@import '@fontsource/share-tech-mono/400.css';
 
 @theme {
-	--color-bg: #0f0f1e;
-	--color-surface-1: #161628;
-	/* …surface-2, surface-3, line, ink, muted, accent */
+	--color-cyber-yellow: #fcee0a;
+	--color-cyber-cyan: #00f0ff;
+	--color-cyber-magenta: #ff003c;
+	--color-cyber-bg: #050505;
+	--color-cyber-surface: #121212;
+	/* …plus the semantic tokens (bg, surface-1..3, line, ink, muted, accent)
+	   and neon shadows (shadow-neon-cyan / magenta / yellow) */
 }
 ```
 
-Each token becomes utilities (`bg-surface-1`, `text-muted`, `border-line`, …), so
-components carry utility classes in their markup instead of `<style>` blocks. The
-only CSS left outside Tailwind is the `@layer components` block that styles the
-`.md-*` classes emitted by the markdown renderer, and the lesson starter CSS.
+Each token becomes utilities (`bg-cyber-surface`, `text-cyber-cyan`, `border-line`,
+…), so components carry utility classes in their markup instead of `<style>` blocks.
+The only CSS left outside Tailwind is the `@layer components` block, which holds the
+guide's clip-path/overlay/animation classes (`.clip-card`, `.clip-button`,
+`.clip-image`, `.scanline-bg`, `.glitch`) and the `.md-*` classes emitted by the
+markdown renderer. The lesson starter CSS stays plain as well.
 
 > The starter CSS inside `curriculum/lesson-NN.js` is **course material**: it is
 > what learners read and edit, so it stays plain CSS on purpose.

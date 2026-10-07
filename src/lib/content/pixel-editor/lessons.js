@@ -21,6 +21,8 @@ export const modules = [
 		short: 'Module 0 · Foundations Lab',
 		project: 'Pixel Art Editor',
 		stack: ['JavaScript', 'DOM', 'Canvas 2D', 'Uint8Array', 'ES Modules', 'Vite', 'TypeScript'],
+		pitch:
+			'Build a drawing app pixel by pixel, starting from zero. You begin with the visible pieces of a web page, watch the app freeze when it grows, and then learn what real applications do instead: keep the data efficient and repaint only what changed. It closes with undo history and an outline-detection challenge.',
 		description:
 			'Build the pixel editor in the DOM first, collapse it on purpose at 16,384 elements, rescue it with Canvas, and then add the data structures that make it scale: flat arrays, typed memory (Uint8Array), DFS, a BFS queue and a ring buffer for history. It closes with ES modules and a build step, TypeScript, hand-written tests, resource lifetime and a border-detection challenge.',
 		from: 1,
@@ -32,6 +34,8 @@ export const modules = [
 		short: 'Module 1 · Diagram Builder',
 		project: 'Diagram Builder',
 		stack: ['Vite', 'TypeScript', 'Vitest', 'ESLint', 'Prettier', 'Canvas 2D', 'DOM'],
+		pitch:
+			'Build a diagram tool where you drag boxes and connect them. You move to a professional local setup — the same tools teams use at work — teach the app to find the right box instantly among thousands, and prove the code is correct with automated tests. Accessibility and memory management are part of the finish line.',
 		description:
 			'The same discipline on a real local toolchain: model the diagram before rendering it, find nodes by id with a Map, scale hit-testing with a spatial hash grid, query it with a proximity radar, reason about connectivity with union-find, prove the invariants with Vitest while ESLint and Prettier stay green, expose a semantic DOM layer for accessibility, release listeners with AbortController and close with a documented hit-testing benchmark.',
 		from: 31,

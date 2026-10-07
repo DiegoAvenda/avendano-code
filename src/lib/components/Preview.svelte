@@ -80,12 +80,12 @@
 	});
 </script>
 
-<div class="h-full overflow-hidden rounded-b-lg bg-[#1a1a2e]">
+<div class="h-full overflow-hidden bg-black">
 	<iframe
 		bind:this={iframeEl}
 		{srcdoc}
 		sandbox="allow-scripts"
 		title="Preview"
-		class="h-full w-full border-none bg-[#1a1a2e]"
+		class="h-full w-full border-none bg-black"
 	></iframe>
 </div>

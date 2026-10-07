@@ -73,14 +73,14 @@
 			'&': {
 				height: '100%',
 				fontSize: '13px',
-				fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace"
+				fontFamily: "'Share Tech Mono', ui-monospace, monospace"
 			},
 			'.cm-scroller': {
 				overflow: 'auto'
 			},
 			'.cm-gutters': {
-				backgroundColor: '#1a1a2e',
-				borderRight: '1px solid #2a2a44'
+				backgroundColor: '#121212',
+				borderRight: '1px solid #262626'
 			}
 		});
 

@@ -9,7 +9,7 @@
 
 	/** Shared look for the toolbar buttons; each variant adds its own colours. */
 	const ACTION_BUTTON =
-		'cursor-pointer rounded-[5px] border px-3.5 py-[5px] text-xs font-semibold transition-all duration-150';
+		'clip-button cursor-pointer border px-3.5 py-[5px] text-[11px] font-bold tracking-wider uppercase transition-all duration-300';
 
 	/**
 	 * @type {{
@@ -118,17 +118,17 @@
 
 <div class="flex h-full min-h-0 flex-col overflow-hidden max-[900px]:h-[760px]">
 	<!-- Editor -->
-	<div class="flex min-h-0 flex-[3] flex-col border-b border-line">
+	<div class="flex min-h-0 flex-[3] flex-col border-b border-gray-800">
 		<div
-			class="flex flex-shrink-0 items-center justify-between border-b border-line bg-surface-1 px-1"
+			class="flex flex-shrink-0 items-center justify-between border-b border-gray-800 bg-black/60 px-1"
 		>
 			<div class="flex gap-0" role="tablist" aria-label="Editor language">
 				{#each tabs as tab (tab)}
 					<button
-						class="cursor-pointer border-b-2 bg-transparent px-4 py-2 text-xs font-semibold tracking-[0.5px] transition-all duration-150 {activeTab ===
+						class="cursor-pointer border-b-2 bg-transparent px-4 py-2 text-[11px] font-bold tracking-widest uppercase transition-all duration-300 {activeTab ===
 						tab
-							? 'border-b-accent text-accent'
-							: 'border-b-transparent text-muted hover:text-[#c0c0d8]'}"
+							? 'border-b-cyber-yellow text-cyber-yellow'
+							: 'border-b-transparent text-gray-500 hover:text-cyber-cyan'}"
 						role="tab"
 						aria-selected={activeTab === tab}
 						onclick={() => (activeTab = tab)}
@@ -139,14 +139,14 @@
 			</div>
 			<div class="flex gap-1.5 p-1">
 				<button
-					class="{ACTION_BUTTON} border-[#2d6a4f] bg-[#2d6a4f] text-[#a7f3d0] hover:bg-[#40916c]"
+					class="{ACTION_BUTTON} border-cyber-yellow bg-cyber-yellow text-black hover:bg-cyber-cyan hover:shadow-neon-cyan"
 					onclick={handleRun}
 					title="Run code"
 				>
 					▶ Run
 				</button>
 				<button
-					class="{ACTION_BUTTON} border-line bg-surface-2 text-muted hover:bg-surface-3 hover:text-ink"
+					class="{ACTION_BUTTON} border-cyber-cyan bg-transparent text-cyber-cyan hover:bg-cyber-cyan hover:text-black hover:shadow-neon-cyan"
 					onclick={handleReset}
 					title="Reset to starter code"
 				>
@@ -165,9 +165,9 @@
 	</div>
 
 	<!-- Preview -->
-	<div class="flex min-h-0 flex-[2] flex-col border-b border-line">
-		<div class="flex-shrink-0 border-b border-line bg-surface-1 px-3 py-1.5">
-			<span class="text-xs font-semibold tracking-[0.5px] text-muted uppercase">Preview</span>
+	<div class="flex min-h-0 flex-[2] flex-col border-b border-gray-800">
+		<div class="flex-shrink-0 border-b border-gray-800 bg-black/60 px-3 py-1.5">
+			<span class="text-[11px] font-bold tracking-widest text-cyber-cyan uppercase">Preview</span>
 		</div>
 		<div class="min-h-0 flex-1">
 			<Preview bind:this={previewRef} {code} onmessage={handleIframeMessage} />
@@ -177,7 +177,7 @@
 	<!-- Console -->
 	<div class="flex max-h-[220px] min-h-8 flex-shrink-0 flex-col {consoleCollapsed ? '' : 'h-32'}">
 		<button
-			class="w-full cursor-pointer items-center gap-1.5 border-t border-line bg-surface-1 px-3 py-1.5 text-xs font-semibold tracking-[0.5px] text-muted uppercase max-[900px]:flex {consoleCollapsed
+			class="w-full cursor-pointer items-center gap-1.5 border-t border-gray-800 bg-black/60 px-3 py-1.5 text-[11px] font-bold tracking-widest text-cyber-cyan uppercase max-[900px]:flex {consoleCollapsed
 				? 'flex'
 				: 'hidden'}"
 			onclick={() => (consoleCollapsed = !consoleCollapsed)}
