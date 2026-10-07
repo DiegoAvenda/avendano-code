@@ -97,11 +97,11 @@
 	function dotClass(id) {
 		const done = progress.isCompleted(id);
 		const active = id === currentId;
-		if (done && active) return 'bg-[#40916c]';
-		if (done) return 'bg-[#2d6a4f]';
-		if (active) return 'bg-accent';
-		if (isChallenge(id)) return 'bg-[#9a7b1f] hover:bg-[#b8933a]';
-		return 'bg-surface-3 hover:bg-[#4a4a6c]';
+		if (done && active) return 'bg-cyber-yellow shadow-neon-yellow';
+		if (done) return 'bg-cyber-cyan';
+		if (active) return 'bg-cyber-yellow shadow-neon-yellow';
+		if (isChallenge(id)) return 'bg-cyber-magenta hover:bg-cyber-magenta/70';
+		return 'bg-surface-3 hover:bg-cyber-cyan/40';
 	}
 
 	/** @param {number} id */
@@ -146,31 +146,35 @@
 	<title>{currentModule.project} — Lesson {position} · {currentModule.label}</title>
 </svelte:head>
 
-<div class="flex h-screen min-h-screen flex-col bg-bg max-[900px]:h-auto">
+<div class="flex h-screen min-h-screen flex-col bg-cyber-bg max-[900px]:h-auto">
 	<header
-		class="flex flex-shrink-0 flex-wrap items-center justify-between gap-4 border-b border-line bg-surface-1 px-5 py-3"
+		class="flex flex-shrink-0 flex-wrap items-center justify-between gap-4 border-b-2 border-cyber-cyan bg-cyber-bg/90 px-5 py-3 shadow-neon-cyan backdrop-blur-sm"
 	>
 		<div class="flex flex-col gap-2">
 			<div class="flex items-center gap-3">
 				<a
 					href="/"
-					class="rounded-md border border-line bg-surface-2 px-2 py-1 text-[11px] font-semibold text-muted hover:border-accent hover:text-ink"
+					class="clip-button border border-cyber-cyan bg-transparent px-3 py-1.5 text-[11px] tracking-wider text-cyber-cyan uppercase transition-all duration-300 hover:bg-cyber-cyan hover:text-black hover:shadow-neon-cyan"
 					title="Back to the module list"
 				>
 					← Modules
 				</a>
 				<div>
-					<h1 class="m-0 text-[17px] font-bold tracking-[-0.01em]">{currentModule.label}</h1>
-					<p class="mt-0.5 mb-0 text-xs text-muted">Project: {currentModule.project}</p>
+					<h1 class="m-0 text-[17px] font-bold tracking-wide text-white uppercase">
+						{currentModule.label}
+					</h1>
+					<p class="mt-0.5 mb-0 text-[11px] tracking-widest text-cyber-yellow uppercase">
+						PROJECT: {currentModule.project}
+					</p>
 				</div>
 			</div>
 			<div class="flex flex-wrap gap-1" role="group" aria-label="Course modules">
 				{#each modules as entry (entry.id)}
 					<button
-						class="cursor-pointer rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-colors {entry.id ===
+						class="cursor-pointer border px-2.5 py-1 text-[11px] tracking-wider uppercase transition-all duration-300 {entry.id ===
 						currentModule.id
-							? 'border-accent bg-accent/15 text-accent'
-							: 'border-line bg-surface-2 text-muted hover:text-ink'}"
+							? 'border-cyber-yellow bg-cyber-yellow/10 text-cyber-yellow'
+							: 'border-gray-800 bg-black/40 text-gray-500 hover:border-cyber-cyan hover:text-cyber-cyan'}"
 						onclick={() => goToModule(entry)}
 						aria-pressed={entry.id === currentModule.id}
 						title={entry.description}
@@ -192,17 +196,17 @@
 	</header>
 
 	<div
-		class="flex flex-shrink-0 flex-col gap-2 border-b border-line bg-surface-1 px-5 py-2 max-[900px]:gap-1.5"
+		class="flex flex-shrink-0 flex-col gap-2 border-b border-gray-800 bg-cyber-surface px-5 py-2 max-[900px]:gap-1.5"
 	>
 		<div class="flex justify-center">
-			<span class="text-[11px] font-semibold tracking-[0.05em] text-accent uppercase opacity-80">
+			<span class="text-[11px] tracking-[0.25em] text-cyber-cyan uppercase opacity-90">
 				{getPhaseLabel(currentId)}
 			</span>
 		</div>
 		<div class="flex flex-1 gap-1.5">
 			{#each moduleLessons as entry, index (entry.id)}
 				<button
-					class="h-1.5 w-full max-w-12 cursor-pointer rounded-[3px] border-none p-0 transition-colors {dotClass(
+					class="h-1.5 w-full max-w-12 cursor-pointer border-none p-0 transition-all duration-300 {dotClass(
 						entry.id
 					)}"
 					onclick={() => goToLesson(entry.id)}
@@ -213,7 +217,9 @@
 			{/each}
 		</div>
 		<button
-			class="cursor-pointer rounded-[5px] border border-line bg-transparent px-3 py-1 text-xs whitespace-nowrap text-muted hover:border-accent hover:text-ink"
+			class="clip-button cursor-pointer border px-3 py-1 text-[11px] tracking-wider whitespace-nowrap uppercase transition-all duration-300 {completed
+				? 'border-cyber-cyan bg-cyber-cyan text-black hover:shadow-neon-cyan'
+				: 'border-cyber-cyan bg-transparent text-cyber-cyan hover:bg-cyber-cyan hover:text-black'}"
 			onclick={toggleComplete}
 			aria-pressed={completed}
 		>
@@ -224,11 +230,11 @@
 	<main class="grid min-h-0 flex-1 grid-cols-[minmax(340px,420px)_1fr] max-[900px]:grid-cols-1">
 		{#if lesson && lesson.id === currentId}
 			<section
-				class="flex min-h-0 flex-col overflow-hidden border-r border-line bg-surface-1 max-[900px]:border-r-0 max-[900px]:border-b"
+				class="flex min-h-0 flex-col overflow-hidden border-r border-gray-800 bg-cyber-surface max-[900px]:border-r-0 max-[900px]:border-b"
 			>
 				<LessonPanel {lesson} />
 			</section>
-			<section class="flex min-h-0 min-w-0 flex-col bg-[#0d0d1a] max-[900px]:min-h-[700px]">
+			<section class="flex min-h-0 min-w-0 flex-col bg-black max-[900px]:min-h-[700px]">
 				{#key lesson.id}
 					<Playground
 						lessonId={lesson.id}
@@ -250,9 +256,9 @@
 	</main>
 
 	<footer
-		class="flex flex-shrink-0 justify-between gap-3 border-t border-line bg-surface-1 px-5 py-1.5 text-[11px] text-muted opacity-70 max-[900px]:flex-col max-[900px]:gap-0.5"
+		class="flex flex-shrink-0 justify-between gap-3 border-t border-gray-800 bg-black px-5 py-1.5 text-[11px] tracking-wider text-gray-500 uppercase max-[900px]:flex-col max-[900px]:gap-0.5"
 	>
-		<span>Vanilla JS + Canvas + DOM in the preview · SvelteKit shell · No backend</span>
-		<span>Progress saved in localStorage</span>
+		<span>&gt; vanilla JS + Canvas + DOM in the preview · SvelteKit shell</span>
+		<span class="text-cyber-cyan">progress :: localStorage</span>
 	</footer>
 </div>

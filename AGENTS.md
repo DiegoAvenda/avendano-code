@@ -208,9 +208,18 @@ its prose announces itself, and that every module has at least one.
 
 ## 7. Styling
 
-- Design tokens live in `src/routes/layout.css` under `@theme` (`bg`, `surface-1..3`,
-  `line`, `ink`, `muted`, `accent`) and become utilities (`bg-surface-1`, `text-muted`,
-  `border-line`, …).
+- The app is themed as a cyberpunk terminal. `src/routes/layout.css` is the single
+  entry point and holds every token under `@theme`: the brand palette
+  (`cyber-yellow`, `cyber-cyan`, `cyber-magenta`, `cyber-bg`, `cyber-surface`), the
+  legacy semantic tokens kept as aliases (`bg`, `surface-1..3`, `line`, `ink`,
+  `muted`, `accent`) and the neon shadows (`shadow-neon-cyan/magenta/yellow`). Each
+  entry becomes a utility (`bg-cyber-surface`, `text-cyber-cyan`, `border-line`, …).
+- The typeface is **Share Tech Mono**, self-hosted through
+  `@fontsource/share-tech-mono` (imported at the top of `layout.css`) so the app
+  keeps its "no network requests" rule.
+- Effects the guide needs but utilities cannot express live in `@layer components`:
+  `.clip-card`, `.clip-button`, `.clip-image`, `.scanline-bg` and `.glitch` (+ its
+  keyframes). Use them as classes; do not re-declare them per component.
 - Markdown-generated markup cannot carry utilities, so the renderer emits semantic `.md-*`
   classes styled once with `@apply` in `layout.css`. Keep that list in sync with
   `src/lib/markdown.js`.

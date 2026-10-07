@@ -3,11 +3,11 @@
 export default {
 	id: 1,
 	title: 'Your First Pixel',
-	description: `We need to tell our pixel editor how large the canvas should be. In JavaScript, we use **variables** to remember values that our program needs.
+	description: `We need to tell our pixel editor how large the canvas should be. **JavaScript** is the language that makes a page react — what happens when you click, type or drag — and in JavaScript we use **variables** to remember values that our program needs.
 
 Variables are like labeled boxes where we store information. Once we give a value a name, we can use that name throughout our code.
 
-We'll use \`const\` (short for "constant") to store the canvas dimensions. The \`const\` keyword means the value won't change — perfect for fixed settings like canvas size.`,
+We'll use \`const\` (short for "constant") to store the canvas dimensions. The \`const\` keyword means the value won't change — perfect for fixed settings like canvas size. Our drawing surface is a **canvas**: a single blank surface you paint pixel by pixel, made for drawings and games instead of text.`,
 	task: `1. Find the \`const width = 16;\` and \`const height = 16;\` lines.
 2. Change the width to 20 and height to 20.
 3. Watch the canvas resize automatically.

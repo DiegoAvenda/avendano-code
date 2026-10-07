@@ -15,7 +15,7 @@ So we are going to grow the region on purpose:
 256 × 256 → 65,536 cells
 \`\`\`
 
-At some size the fill stops with \`RangeError: Maximum call stack size exceeded\`. That is not a bug in the algorithm. It is a property of the machine that runs it.`,
+At some size the fill stops with \`RangeError: Maximum call stack size exceeded\`. An **algorithm** is a recipe of steps to solve a problem: how to fill a shape, how to find the nearest box, how to avoid visiting the same place twice. This one is still correct — that is not a bug in the algorithm. It is a property of the machine that runs it.`,
 	task: `1. Press 16 × 16, then 32 × 32 and read the **max depth** in the report — it tracks how deep the recursion went.
 2. Keep going: 64 × 64, 128 × 128, 256 × 256.
 3. Find the size where the fill reports a \`RangeError\` instead of a result.
