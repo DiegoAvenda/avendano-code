@@ -27,7 +27,7 @@ function moveNode(node, x, y) {
 }
 \`\`\`
 
-The contracts are maintained by hand, by us, everywhere, forever. Every new field means updating the validators, the JSDoc and the tests — and nothing forces a caller to read any of it.`,
+The contracts are maintained by hand, by us, everywhere, forever. Every new field means updating the validators, the JSDoc and the tests — and nothing forces a caller to read any of it. **TypeScript** — JavaScript with labels for your data, so mistakes are caught before the user sees them — is the next lesson's answer; here we do without it.`,
 	task: `1. Read the three contract tools: the JSDoc annotation, \`assertNumber\` and \`assertNode\`.
 2. Press **Run with contracts** — the same three mistakes from the previous lesson are now caught with a message that names the cause.
 3. Read the error messages: they point at the argument that was wrong.

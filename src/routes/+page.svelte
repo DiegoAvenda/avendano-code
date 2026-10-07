@@ -158,41 +158,6 @@
 		}
 	];
 
-	const GLOSSARY = [
-		{
-			term: 'HTML & CSS',
-			body: 'The content of a page and how it looks: text, boxes, colours, layout.'
-		},
-		{
-			term: 'JavaScript',
-			body: 'The language that makes a page react: what happens when you click, type or drag.'
-		},
-		{
-			term: 'DOM',
-			body: 'Short for Document Object Model — the page seen as a tree of boxes that code can create, move and remove.'
-		},
-		{
-			term: 'Canvas',
-			body: 'A single blank surface you paint pixel by pixel, made for drawings and games instead of text.'
-		},
-		{
-			term: 'Data structure',
-			body: 'A way of organising information so the right answer arrives fast. The same data can be fast or unusably slow depending on how you store it.'
-		},
-		{
-			term: 'Algorithm',
-			body: 'A recipe of steps to solve a problem: how to fill a shape, how to find the nearest box, how to avoid visiting the same place twice.'
-		},
-		{
-			term: 'Test',
-			body: 'A short piece of code that checks your code still behaves correctly after you change it.'
-		},
-		{
-			term: 'TypeScript',
-			body: 'JavaScript with labels for your data, so mistakes are caught before the user sees them.'
-		}
-	];
-
 	const FAQ = [
 		{
 			question: 'I have never written code. Can I really start here?',
@@ -572,29 +537,6 @@
 					</li>
 				{/each}
 			</ul>
-		</section>
-
-		<!-- Glossary -->
-		<section class="relative border-y border-gray-800 bg-black/40">
-			<div class={SECTION}>
-				<p class={EYEBROW}>&gt; jargon --explain</p>
-				<h2 class={H2}>Words you'll hear, in plain language</h2>
-				<p class={LEAD}>
-					You do not need any of this to begin. Here is the honest translation, so the first lesson
-					never feels like it started without you.
-				</p>
-
-				<dl class="mt-8 grid gap-4 sm:grid-cols-2">
-					{#each GLOSSARY as entry (entry.term)}
-						<div class="clip-card border border-gray-800 bg-cyber-surface p-5">
-							<dt class="text-sm font-bold tracking-wide text-cyber-cyan uppercase">
-								{entry.term}
-							</dt>
-							<dd class="mt-2 mb-0 ml-0 text-xs leading-relaxed text-gray-400">{entry.body}</dd>
-						</div>
-					{/each}
-				</dl>
-			</div>
 		</section>
 
 		<!-- FAQ -->

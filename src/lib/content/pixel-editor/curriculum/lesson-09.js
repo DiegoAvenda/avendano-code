@@ -19,7 +19,7 @@ At 16,384 elements the page stops responding while it builds, and **layout** bec
 3. Open DevTools → **Elements** and find those 16,384 nodes. Then → **Layout** and see how long a layout takes.
 4. Open DevTools → Performance and record while you build the grid: **scripting**, **style calculation**, **layout**, **paint**.
 5. Write down which of those costs would disappear if the pixels were not elements at all.`,
-	concept: `**The DOM is a rendering representation, not a data structure.** Each cell is an element with styles, layout and paint work attached to it, so the cost grows with the number of cells — not with the size of the drawing.`,
+	concept: `**The DOM is a rendering representation, not a data structure.** A data structure is a way of organising information so the right answer arrives fast — and the same data can be fast or unusably slow depending on how you store it. Each cell here is an element with styles, layout and paint work attached to it, so the cost grows with the number of cells — not with the size of the drawing.`,
 	whyItMatters: `Before choosing a technique we should measure. The conclusion is not "my loop is wrong"; it is "my representation generates too much work for the browser". That is the question the next lesson answers.`,
 	starterCode: {
 		html: `<!DOCTYPE html>

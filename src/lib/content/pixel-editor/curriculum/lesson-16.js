@@ -37,7 +37,7 @@ Return the **1D indices** of the border pixels. The colour of the region is what
 4. Press **Run the checks** as many times as you need — each case tells you what it expected.
 5. When all four cases pass, the closing card appears. Read it: the pattern you just wrote is the core of two classic interview problems.`,
 	concept: `**BFS plus a boundary condition.** The traversal is the one you already know; the new reasoning is per-pixel: a pixel belongs to the border when at least one of its neighbours is outside the region — where "outside" includes the edge of the canvas.`,
-	whyItMatters: `This is the shape of a whole family of problems: flood fill asks "which pixels are connected?", but perimeter problems ask "which connected pixels touch the outside?" The same traversal, a different question, and the neighbour test is where the reasoning lives.`,
+	whyItMatters: `This is the shape of a whole family of problems: flood fill asks "which pixels are connected?", but perimeter problems ask "which connected pixels touch the outside?" The same traversal, a different question, and the neighbour check is where the reasoning lives.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">

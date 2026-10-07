@@ -3,7 +3,7 @@
 export default {
 	id: 7,
 	title: 'Talk to the Page',
-	description: `The editor needs controls outside the canvas — buttons, labels, color swatches. JavaScript can read and modify the page using the **DOM** (Document Object Model).
+	description: `The editor needs controls outside the canvas — buttons, labels, color swatches. Those controls are **HTML** — the content of a page: text, boxes — styled with **CSS** — how it looks: colours, layout. JavaScript can read and modify the page using the **DOM** (Document Object Model): the page seen as a tree of boxes that code can create, move and remove.
 
 Key DOM operations:
 - \`document.getElementById(id)\` — find an element
