@@ -190,13 +190,6 @@
 			</span>
 		</div>
 
-		<span
-			class="hidden truncate text-[10px] tracking-widest text-cyber-cyan uppercase xl:inline"
-			title={phaseLabel}
-		>
-			{phaseLabel}
-		</span>
-
 		<div class="ml-auto flex flex-shrink-0 items-center gap-1.5">
 			<span class="text-[10px] tracking-widest whitespace-nowrap text-gray-500 uppercase">
 				Lesson <b class="text-cyber-yellow tabular-nums">{position}</b>
@@ -233,19 +226,28 @@
 		</div>
 	</header>
 
-	<!-- Phase + progress as a 4px line attached to the header's bottom edge. -->
-	<div class="flex h-1 flex-shrink-0 gap-px bg-black" role="group" aria-label="Lesson progress">
-		{#each moduleLessons as entry, index (entry.id)}
-			<button
-				class="h-full w-full max-w-12 cursor-pointer border-none p-0 transition-all duration-300 {dotClass(
-					entry.id
-				)}"
-				onclick={() => goToLesson(entry.id)}
-				title={dotTitle(entry, index)}
-				aria-label={dotLabel(entry, index)}
-				aria-current={entry.id === currentId ? 'true' : undefined}
-			></button>
-		{/each}
+	<!-- Phase + lesson strip: the labelled row that switches lessons. -->
+	<div
+		class="flex flex-shrink-0 flex-col gap-2 border-b border-gray-800 bg-cyber-surface px-5 py-2"
+	>
+		<div class="flex justify-center">
+			<span class="text-[11px] tracking-[0.25em] text-cyber-cyan uppercase opacity-90">
+				{phaseLabel}
+			</span>
+		</div>
+		<div class="flex flex-1 gap-1.5" role="group" aria-label="Lesson progress">
+			{#each moduleLessons as entry, index (entry.id)}
+				<button
+					class="h-1.5 w-full max-w-12 cursor-pointer border-none p-0 transition-all duration-300 {dotClass(
+						entry.id
+					)}"
+					onclick={() => goToLesson(entry.id)}
+					title={dotTitle(entry, index)}
+					aria-label={dotLabel(entry, index)}
+					aria-current={entry.id === currentId ? 'true' : undefined}
+				></button>
+			{/each}
+		</div>
 	</div>
 
 	<main class="flex min-h-0 flex-1 flex-col overflow-hidden">
