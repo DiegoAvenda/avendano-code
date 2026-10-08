@@ -151,7 +151,7 @@
 	const HEADER_BUTTON =
 		'clip-button cursor-pointer border border-cyber-cyan bg-transparent px-2.5 py-1 text-[11px] tracking-wider whitespace-nowrap text-cyber-cyan uppercase transition-all duration-300 hover:bg-cyber-cyan hover:text-black hover:shadow-neon-cyan';
 	const STEP_BUTTON =
-		'cursor-pointer border border-gray-800 bg-black/40 px-2 py-1 text-[11px] leading-none text-gray-400 transition-colors hover:border-cyber-cyan hover:text-cyber-cyan disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-gray-800 disabled:hover:text-gray-400';
+		'cursor-pointer border border-gray-800 bg-black/40 px-3 py-1.5 text-[17px] leading-none text-gray-400 transition-colors hover:border-cyber-cyan hover:text-cyber-cyan disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-gray-800 disabled:hover:text-gray-400';
 	const COMPLETE_BUTTON =
 		'clip-button w-full cursor-pointer border px-3 py-1.5 text-[11px] font-bold tracking-wider uppercase transition-all duration-300';
 </script>
@@ -163,7 +163,7 @@
 <div class="lab-viewport flex flex-col overflow-hidden bg-cyber-bg">
 	<!-- One row: identity, module picker, position and navigation. -->
 	<header
-		class="flex flex-shrink-0 items-center gap-2 border-b-2 border-cyber-cyan bg-cyber-bg/90 px-2 py-1 backdrop-blur-sm"
+		class="flex flex-shrink-0 items-center gap-2 border-b-2 border-cyber-cyan bg-cyber-bg/90 px-2 py-1 shadow-neon-cyan backdrop-blur-sm"
 	>
 		<a href="/" class={HEADER_BUTTON} title="Back to the module list">← Modules</a>
 
@@ -191,7 +191,7 @@
 		</div>
 
 		<div class="ml-auto flex flex-shrink-0 items-center gap-1.5">
-			<span class="text-[10px] tracking-widest whitespace-nowrap text-gray-500 uppercase">
+			<span class="text-[14px] tracking-widest whitespace-nowrap text-gray-400 uppercase">
 				Lesson <b class="text-cyber-yellow tabular-nums">{position}</b>
 				<span class="opacity-40">/</span>
 				<span class="tabular-nums">{moduleLessons.length}</span>
@@ -228,7 +228,7 @@
 
 	<!-- Phase + lesson strip: the labelled row that switches lessons. -->
 	<div
-		class="flex flex-shrink-0 flex-col gap-2 border-b border-gray-800 bg-cyber-surface px-5 py-2"
+		class="lab-strip-glow flex flex-shrink-0 flex-col gap-2 border-b border-gray-800 bg-cyber-surface px-5 py-2"
 	>
 		<div class="flex justify-center">
 			<span class="text-[11px] tracking-[0.25em] text-cyber-cyan uppercase opacity-90">
