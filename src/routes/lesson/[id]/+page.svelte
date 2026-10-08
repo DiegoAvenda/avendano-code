@@ -163,14 +163,15 @@
 <div class="lab-viewport flex flex-col overflow-hidden bg-cyber-bg">
 	<!-- One row: identity, module picker, position and navigation. -->
 	<header
-		class="flex flex-shrink-0 items-center gap-2 border-b-2 border-cyber-cyan bg-cyber-bg/90 px-2 py-1 shadow-neon-cyan backdrop-blur-sm"
+		class="flex shrink-0 items-center gap-2 border-b-2 border-cyber-cyan bg-cyber-bg/90 px-2 py-1 shadow-neon-cyan backdrop-blur-sm"
 	>
 		<a href="/" class={HEADER_BUTTON} title="Back to the module list">← Modules</a>
 
+		<h1 class="sr-only">{currentModule.label}</h1>
 		<label class="sr-only" for="module-select">Module</label>
 		<select
 			id="module-select"
-			class="max-w-[220px] cursor-pointer border border-cyber-cyan bg-black px-2 py-1 text-[11px] tracking-wider text-cyber-cyan uppercase"
+			class="max-w-55 cursor-pointer border border-cyber-cyan bg-black px-2 py-1 text-[11px] tracking-wider text-cyber-cyan uppercase"
 			value={currentModule.id}
 			onchange={(event) => goToModuleById(event.currentTarget.value)}
 		>
@@ -179,18 +180,11 @@
 			{/each}
 		</select>
 
-		<div class="flex min-w-0 items-baseline gap-2">
-			<h1 class="truncate text-[12px] font-bold tracking-wide text-white uppercase">
-				{currentModule.label}
-			</h1>
-			<span
-				class="hidden truncate text-[10px] tracking-widest text-cyber-yellow uppercase lg:inline"
-			>
-				{currentModule.project}
-			</span>
-		</div>
+		<span class="truncate text-[14px] tracking-widest text-cyber-yellow uppercase">
+			{currentModule.project}
+		</span>
 
-		<div class="ml-auto flex flex-shrink-0 items-center gap-1.5">
+		<div class="ml-auto flex shrink-0 items-center gap-1.5">
 			<span class="text-[14px] tracking-widest whitespace-nowrap text-gray-400 uppercase">
 				Lesson <b class="text-cyber-yellow tabular-nums">{position}</b>
 				<span class="opacity-40">/</span>

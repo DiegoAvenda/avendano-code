@@ -278,8 +278,8 @@ body {
 	/* Cyan halo that bleeds from the header's line into the lesson strip. */
 	.lab-strip-glow {
 		box-shadow:
-			inset 0 4px 10px -4px var(--color-cyber-cyan),
-			inset 0 16px 26px -16px var(--color-cyber-cyan);
+			inset 0 2px 6px -2px color-mix(in srgb, var(--color-cyber-cyan) 60%, transparent),
+			inset 0 4px 12px -3px color-mix(in srgb, var(--color-cyber-cyan) 30%, transparent);
 	}
 
 	/*
