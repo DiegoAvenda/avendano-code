@@ -17,29 +17,16 @@
 export const modules = [
 	{
 		id: 'foundations',
-		label: 'Module 0 — Foundations Lab',
-		short: 'Module 0 · Foundations Lab',
+		label: 'Module 1 — JavaScript',
+		short: 'Module 1 · JavaScript',
 		project: 'Pixel Art Editor',
-		stack: ['JavaScript', 'DOM', 'Canvas 2D', 'Uint8Array', 'ES Modules', 'Vite', 'TypeScript'],
+		stack: ['JavaScript', 'DOM', 'Canvas 2D', 'Uint8Array'],
 		pitch:
 			'Build a drawing app pixel by pixel, starting from zero. You begin with the visible pieces of a web page, watch the app freeze when it grows, and then learn what real applications do instead: keep the data efficient and repaint only what changed. It closes with undo history and an outline-detection challenge.',
 		description:
-			'Build the pixel editor in the DOM first, collapse it on purpose at 16,384 elements, rescue it with Canvas, and then add the data structures that make it scale: flat arrays, typed memory (Uint8Array), DFS, a BFS queue and a ring buffer for history. It closes with ES modules and a build step, TypeScript, hand-written tests, resource lifetime and a border-detection challenge.',
+			'Build the pixel editor in the DOM first, collapse it on purpose at 16,384 elements, rescue it with Canvas, and then add the data structures that make it scale: flat arrays, typed memory (Uint8Array), DFS, a BFS queue and a ring buffer for history.',
 		from: 1,
-		to: 30
-	},
-	{
-		id: 'diagram',
-		label: 'Module 1 — Flowchart & Diagram Builder',
-		short: 'Module 1 · Diagram Builder',
-		project: 'Diagram Builder',
-		stack: ['Vite', 'TypeScript', 'Vitest', 'ESLint', 'Prettier', 'Canvas 2D', 'DOM'],
-		pitch:
-			'Build a diagram tool where you drag boxes and connect them. You move to a professional local setup — the same tools teams use at work — teach the app to find the right box instantly among thousands, and prove the code is correct with automated tests. Accessibility and memory management are part of the finish line.',
-		description:
-			'The same discipline on a real local toolchain: model the diagram before rendering it, find nodes by id with a Map, scale hit-testing with a spatial hash grid, query it with a proximity radar, reason about connectivity with union-find, prove the invariants with Vitest while ESLint and Prettier stay green, expose a semantic DOM layer for accessibility, release listeners with AbortController and close with a documented hit-testing benchmark.',
-		from: 31,
-		to: 39
+		to: 18
 	}
 ];
 
@@ -48,15 +35,9 @@ export const modules = [
  * lessons only requires editing this table.
  */
 export const phases = [
-	{ id: 1, label: 'Phase 0.1: Visual JavaScript with the DOM', from: 1, to: 10 },
-	{ id: 2, label: 'Phase 0.2: Visual Data Structures and Algorithms', from: 11, to: 17 },
-	{ id: 3, label: 'Phase 0.5: Tooling Bridge', from: 18, to: 21 },
-	{ id: 4, label: 'Phase 0.6: TypeScript Bridge', from: 22, to: 26 },
-	{ id: 5, label: 'Phase 0.7: Basic Testing', from: 27, to: 28 },
-	{ id: 6, label: 'Phase 0.8: Lifetime & Closing', from: 29, to: 30 },
-	{ id: 7, label: 'Phase 1: Model, Access & Scale', from: 31, to: 36 },
-	{ id: 8, label: 'Phase 2: Accessibility & Memory', from: 37, to: 38 },
-	{ id: 9, label: 'Phase 3: Closing', from: 39, to: 39 }
+	{ id: 1, label: 'Phase 1: Visual JavaScript with the DOM', from: 1, to: 10 },
+	{ id: 2, label: 'Phase 2: Visual Data Structures and Algorithms', from: 11, to: 17 },
+	{ id: 3, label: 'Phase 3: Closing', from: 18, to: 18 }
 ];
 
 /**
@@ -81,7 +62,7 @@ export function getModule(lessonId) {
  * `type: 'challenge'` marks the boss fight that closes each module's main arc.
  */
 export const lessonList = [
-	// Module 0 — Pixel Art Editor
+	// Module 1 — Pixel Art Editor
 	{ id: 1, title: 'Your First Pixel' },
 	{ id: 2, title: 'Give the Code a Job' },
 	{ id: 3, title: 'Make Decisions' },
@@ -99,29 +80,7 @@ export const lessonList = [
 	{ id: 15, title: 'Queue It' },
 	{ id: 16, title: 'The Border Inspector', type: 'challenge' },
 	{ id: 17, title: 'Bounded History' },
-	{ id: 18, title: 'Split the Code' },
-	{ id: 19, title: 'The Browser Is Already a Module System' },
-	{ id: 20, title: 'The esbuild Bridge' },
-	{ id: 21, title: 'Why Vite?' },
-	{ id: 22, title: 'JavaScript Starts Fighting Back' },
-	{ id: 23, title: 'Contracts Without TypeScript' },
-	{ id: 24, title: 'Add Types' },
-	{ id: 25, title: 'Make the Contract Useful' },
-	{ id: 26, title: 'When Types Meet Reuse' },
-	{ id: 27, title: 'Write Your Own Tests' },
-	{ id: 28, title: 'Testing the Hard Parts' },
-	{ id: 29, title: 'Memory I: Lifetime & Cleanup' },
-	{ id: 30, title: 'Project Close: Definition of Done' },
-	// Module 1 — Diagram Builder
-	{ id: 31, title: 'Model Before Rendering' },
-	{ id: 32, title: 'Finding Things' },
-	{ id: 33, title: 'Too Many Nodes' },
-	{ id: 34, title: 'Proximity Selection Radar', type: 'challenge' },
-	{ id: 35, title: 'Groups and Connections' },
-	{ id: 36, title: 'Testing the Structures' },
-	{ id: 37, title: 'The Canvas Needs a Second Representation' },
-	{ id: 38, title: 'Memory Management' },
-	{ id: 39, title: 'Project Close: Definition of Done' }
+	{ id: 18, title: 'Project Close: Definition of Done' }
 ];
 
 /** @type {Record<number, () => Promise<{ default: any }>>} */
@@ -143,28 +102,7 @@ const loaders = {
 	15: () => import('./curriculum/lesson-15.js'),
 	16: () => import('./curriculum/lesson-16.js'),
 	17: () => import('./curriculum/lesson-17.js'),
-	18: () => import('./curriculum/lesson-18.js'),
-	19: () => import('./curriculum/lesson-19.js'),
-	20: () => import('./curriculum/lesson-20.js'),
-	21: () => import('./curriculum/lesson-21.js'),
-	22: () => import('./curriculum/lesson-22.js'),
-	23: () => import('./curriculum/lesson-23.js'),
-	24: () => import('./curriculum/lesson-24.js'),
-	25: () => import('./curriculum/lesson-25.js'),
-	26: () => import('./curriculum/lesson-26.js'),
-	27: () => import('./curriculum/lesson-27.js'),
-	28: () => import('./curriculum/lesson-28.js'),
-	29: () => import('./curriculum/lesson-29.js'),
-	30: () => import('./curriculum/lesson-30.js'),
-	31: () => import('./curriculum/lesson-31.js'),
-	32: () => import('./curriculum/lesson-32.js'),
-	33: () => import('./curriculum/lesson-33.js'),
-	34: () => import('./curriculum/lesson-34.js'),
-	35: () => import('./curriculum/lesson-35.js'),
-	36: () => import('./curriculum/lesson-36.js'),
-	37: () => import('./curriculum/lesson-37.js'),
-	38: () => import('./curriculum/lesson-38.js'),
-	39: () => import('./curriculum/lesson-39.js')
+	18: () => import('./curriculum/lesson-18.js')
 };
 
 /**

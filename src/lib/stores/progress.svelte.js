@@ -10,7 +10,8 @@ import {
 	STORAGE_VERSION,
 	migrateLegacyV1,
 	migrateToCurrent,
-	shiftProgressToV4
+	shiftProgressToV4,
+	shiftProgressToV5
 } from './progressMigrations.js';
 
 const STORAGE_KEY = 'frontend-data-structures-progress';
@@ -71,17 +72,22 @@ function loadProgress() {
 				};
 			}
 
-			// v3 → v4: two challenge lessons were inserted (after 15 and after 33).
-			if (parsed.version === 3) {
-				return persistMigration(shiftProgressToV4(parsed));
+			// v4 → v5: Module 1 cutdown
+			if (parsed.version === 4) {
+				return persistMigration(shiftProgressToV5(parsed));
 			}
 
-			// v2 → v3 → v4.
+			// v3 → v4 → v5.
+			if (parsed.version === 3) {
+				return persistMigration(shiftProgressToV5(shiftProgressToV4(parsed)));
+			}
+
+			// v2 → v3 → v4 → v5.
 			if (parsed.version === 2) {
 				return persistMigration(migrateToCurrent(parsed));
 			}
 
-			// Migration v1 (unversioned, lessons 1-10) -> v2 -> v3 -> v4.
+			// Migration v1 (unversioned, lessons 1-10) -> v2 -> v3 -> v4 -> v5.
 			if (!parsed.version) {
 				return persistMigration(migrateToCurrent(migrateLegacyV1(parsed)));
 			}
