@@ -13,7 +13,7 @@
  *                                    15 (Module 0) and after 33 (Module 1)
  */
 
-export const STORAGE_VERSION = 4;
+export const STORAGE_VERSION = 5;
 
 /** In v2 the diagram module started here. */
 export const MODULE_SHIFT_FROM = 26;
@@ -112,9 +112,30 @@ export function shiftProgressToV4(parsed) {
 }
 
 /**
+ * v4 → v5: Module 1 cutdown. Any progress for lessons > 18 is discarded.
+ * @param {{ currentLesson?: number, completedLessons?: number[], editorContents?: Record<string, any> }} parsed
+ */
+export function shiftProgressToV5(parsed) {
+	const currentLesson =
+		parsed.currentLesson && parsed.currentLesson > 18 ? 1 : (parsed.currentLesson ?? 1);
+
+	const completedLessons = (parsed.completedLessons ?? []).filter((id) => id <= 18);
+
+	const editorContents = {};
+	for (const [key, value] of Object.entries(parsed.editorContents ?? {})) {
+		const lessonId = parseInt(key, 10);
+		if (Number.isNaN(lessonId) || lessonId <= 18) {
+			editorContents[key] = value;
+		}
+	}
+
+	return { currentLesson, completedLessons, editorContents };
+}
+
+/**
  * The full chain, for payloads older than the current version.
  * @param {{ currentLesson?: number, completedLessons?: number[], editorContents?: Record<string, any> }} parsed
  */
 export function migrateToCurrent(parsed) {
-	return shiftProgressToV4(shiftProgressToV3(parsed));
+	return shiftProgressToV5(shiftProgressToV4(shiftProgressToV3(parsed)));
 }

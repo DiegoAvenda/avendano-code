@@ -1,30 +1,25 @@
-// Pixel Art Editor — Lesson 18: Split the Code
+// Pixel Art Editor — Lesson 18: Project Close: Definition of Done
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 18,
-	title: 'Split the Code',
-	description: `The editor is no longer a small file. Buffer, rendering, history, tools and input all live in the same place, and every change means scrolling through code that belongs to something else.
+	title: 'Project Close: Definition of Done',
+	description: `Every project in this course ends with the same question, asked at different levels of rigour: **can you show that this is finished?**
 
-The fix is not a new library. It is a decision about **responsibilities**:
+Right now you have no tooling. No npm scripts, no linter, no test runner — everything has to be verified by hand, in the browser. So the checklist for this module is small and honest:
 
 \`\`\`
-main.js      wires everything together
-renderer.js  turns pixel data into an image
-buffer.js    owns the pixels and index math
-history.js   remembers the last N actions
-paint.js     turns pointer events into changes on the buffer
+1. Clean console       no uncaught errors while the editor runs
+2. Pure logic by hand  the index math and the structures, checked with your own assertions
+3. Resource audit      timers and listeners are released
 \`\`\`
 
-Each file exposes a small surface (\`export\`) and consumes what it needs (\`import\`). The set of imports is the **dependency graph** of the application.
-
-Notice the direction of the arrows: \`paint.js\` knows about the buffer and the renderer; the renderer knows nothing about painting. That direction is what keeps the pieces replaceable.`,
-	task: `1. Read the five module factories in the script — each one is one responsibility.
-2. Find the \`graph\` object: that is the dependency graph the modules form.
-3. Draw on the canvas: \`main\` passes input to \`paint\`, \`paint\` writes to \`buffer\`, \`buffer\` is rendered by \`renderer\`.
-4. Press **Undo** — only \`history.js\` knows how undo works.
-5. Change \`renderer.js\` so it draws with a different color mapping. Nothing else has to change.`,
-	concept: `**ES modules and the dependency graph** — \`export\` declares what a module offers, \`import\` declares what it needs. The graph of those edges is the architecture of the app.`,
-	whyItMatters: `Splitting by responsibility is what makes a project survive growth: you can reason about one piece at a time, replace it, and see at a glance what depends on what. And once the code is split into modules, a new question appears — how does the browser actually load all of these? That is the next lesson.`,
+That is deliberately all of it. There is no CI, no automated lint, no report: the evidence is what you can run and read yourself in this page. The checklist is not weaker for that — it is the honest version of "done" for the tools you have.`,
+	task: `1. Press **Run the checklist** and read the three items.
+2. Press **Break it**: it throws an intentional error and leaves a timer nobody releases.
+3. Watch the checklist go red — and watch the console fill up. That first item is doing its job.
+4. Reload the page to fix it, and confirm the three items are green again.`,
+	concept: `**A Definition of Done proportional to your tools** — the checklist is evidence, not ceremony. When there is no tooling, the evidence is manual, and that is still evidence.`,
+	whyItMatters: `It is tempting to skip verification when nothing automates it. This lesson makes the manual version explicit and makes the gap visible: everything here is checked by hand, by you, in the browser, and only while you remember to look. This concludes Module 1.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -34,13 +29,12 @@ Notice the direction of the arrows: \`paint.js\` knows about the buffer and the 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Pixel Editor — five modules, one application</h3>
+  <h3>Pixel Art Editor — Definition of Done (manually verified)</h3>
   <div id="toolbar">
-    <button id="btn-undo">↩ Undo</button>
-    <span id="status">Strokes: 0</span>
+    <button id="run-btn">Run the checklist</button>
+    <button id="break-btn">Break it</button>
   </div>
-  <canvas id="canvas" width="32" height="32"></canvas>
-  <pre id="graph"></pre>
+  <pre id="report">Run the checklist to see the three items.</pre>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -56,169 +50,141 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#toolbar { display: flex; align-items: center; gap: 12px; }
-#btn-undo {
+#toolbar { display: flex; gap: 8px; }
+#run-btn, #break-btn {
   background: #2a2a44;
-  color: #c0c0d8;
+  color: #e0e0e0;
   border: 1px solid #3a3a5c;
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 13px;
   cursor: pointer;
 }
-#status { color: #8888aa; font-size: 12px; }
-#canvas {
-  width: 320px;
-  height: 320px;
-  image-rendering: pixelated;
-  border: 2px solid #3a3a5c;
-  cursor: crosshair;
-}
-#graph {
+#run-btn:hover { border-color: #2ecc71; }
+#break-btn:hover { border-color: #e94560; }
+#report {
   background: #111122;
   border: 1px solid #2a2a44;
   border-radius: 6px;
-  padding: 12px;
+  padding: 16px;
   font-family: monospace;
-  font-size: 12px;
+  font-size: 12.5px;
+  line-height: 1.8;
   color: #b0b0c8;
-  white-space: pre;
+  white-space: pre-wrap;
+  width: 640px;
+  max-width: 100%;
+  min-height: 260px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 18: Split the Code
+		javascript: `// Pixel Art Editor — Lesson 18: Project Close: Definition of Done
 
-// ── buffer.js ─────────────────────────────────────────────
-// Owns the pixels. Nothing here knows how they are drawn.
-function createBuffer(width, height) {
-  const pixels = new Uint8Array(width * height);
+const reportEl = document.getElementById("report");
+
+// ── Item 1: a clean console ──
+// Nothing automates this yet, so we count uncaught errors ourselves.
+let uncaught = 0;
+window.addEventListener("error", () => { uncaught++; });
+window.addEventListener("unhandledrejection", () => { uncaught++; });
+
+function checkConsole() {
   return {
-    width,
-    height,
-    pixels,
-    index: (x, y) => y * width + x,
-    get(x, y) { return pixels[y * width + x]; },
-    set(x, y, value) { pixels[y * width + x] = value; }
+    ok: uncaught === 0,
+    detail: uncaught === 0 ? "no uncaught errors" : uncaught + " uncaught error(s)"
   };
 }
 
-// ── renderer.js ───────────────────────────────────────────
-// Turns buffer data into an image. It never writes to the buffer.
-function createRenderer(canvas, palette) {
-  const ctx = canvas.getContext("2d");
-  let image = null;
+// ── Item 2: pure logic, checked by hand ──
+// The same assertions a test runner would execute — written manually.
+function checkPureLogic() {
+  let passed = 0;
+  let total = 0;
+
+  const expectEqual = (actual, expected) => {
+    total++;
+    if (JSON.stringify(actual) === JSON.stringify(expected)) passed++;
+  };
+
+  const indexOf = (x, y, width) => y * width + x;
+  expectEqual(indexOf(0, 0, 4), 0);
+  expectEqual(indexOf(3, 0, 4), 3);
+  expectEqual(indexOf(0, 1, 4), 4);
+
+  return { ok: passed === total, detail: passed + "/" + total + " assertions pass" };
+}
+
+// ── Item 3: the resource audit ──
+const live = { listeners: 0, timers: 0 };
+const baseline = JSON.stringify(live); // everything must come back to this
+
+function mountPanel() {
+  const controller = new AbortController();
+  window.addEventListener("resize", () => {}, { signal: controller.signal });
+  live.listeners++;
+  const timer = setTimeout(() => {}, 5000);
+  live.timers++;
 
   return {
-    render(buffer) {
-      if (!image || image.width !== buffer.width) {
-        canvas.width = buffer.width;
-        canvas.height = buffer.height;
-        image = ctx.createImageData(buffer.width, buffer.height);
-      }
-      const data = image.data;
-      for (let i = 0; i < buffer.pixels.length; i++) {
-        const hex = palette[buffer.pixels[i]] || palette[0];
-        const o = i * 4;
-        data[o] = parseInt(hex.slice(1, 3), 16);
-        data[o + 1] = parseInt(hex.slice(3, 5), 16);
-        data[o + 2] = parseInt(hex.slice(5, 7), 16);
-        data[o + 3] = 255;
-      }
-      ctx.putImageData(image, 0, 0);
+    destroy() {
+      controller.abort();
+      clearTimeout(timer);
+      live.listeners--;
+      live.timers--;
     }
   };
 }
 
-// ── history.js ────────────────────────────────────────────
-// Remembers the last N snapshots. It does not know what a pixel is.
-function createHistory(capacity) {
-  const entries = [];
+function checkResources() {
+  mountPanel().destroy();
+  const now = JSON.stringify(live);
+
   return {
-    push(snapshot) {
-      entries.push(snapshot);
-      if (entries.length > capacity) entries.shift();
-    },
-    pop() { return entries.pop(); },
-    get size() { return entries.length; }
+    ok: now === baseline,
+    detail: now === baseline ? "timers and listeners released" : "something leaked: " + now
   };
 }
 
-// ── paint.js ──────────────────────────────────────────────
-// Translates pointer events into buffer changes.
-function createPaint({ canvas, buffer, renderer, history, color, onchange }) {
-  let drawing = false;
+// ── The checklist ──
+function runChecklist() {
+  const results = [
+    { label: "Clean console", ...checkConsole() },
+    { label: "Pure logic by hand", ...checkPureLogic() },
+    { label: "Resource audit", ...checkResources() }
+  ];
 
-  function toGrid(event) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: Math.floor(((event.clientX - rect.left) / rect.width) * buffer.width),
-      y: Math.floor(((event.clientY - rect.top) / rect.height) * buffer.height)
-    };
-  }
+  const done = results.filter((result) => result.ok).length;
+  const lines = results.map(
+    (result) => (result.ok ? "✓ " : "✗ ") + result.label + " — " + result.detail
+  );
 
-  function paint(event) {
-    const { x, y } = toGrid(event);
-    if (x < 0 || x >= buffer.width || y < 0 || y >= buffer.height) return;
-    if (buffer.get(x, y) === color) return;
-    buffer.set(x, y, color);
-    renderer.render(buffer);
-  }
+  reportEl.textContent =
+    lines.join("\\n") + "\\n\\n" +
+    done + " of " + results.length + " checks pass — " +
+    (done === results.length ? "DONE" : "NOT DONE") +
+    "\\n\\nthe whole checklist is manual: no linter, no test runner,\\n" +
+    "no CI. Right now you are the automation.";
 
-  canvas.addEventListener("pointerdown", (event) => {
-    drawing = true;
-    history.push(buffer.pixels.slice());
-    canvas.setPointerCapture(event.pointerId);
-    paint(event);
-    onchange();
-  });
-  canvas.addEventListener("pointermove", (event) => { if (drawing) paint(event); });
-  canvas.addEventListener("pointerup", () => { drawing = false; });
-  canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+  console.log("Definition of Done (manual):", done + "/" + results.length);
 }
 
-// ── main.js ───────────────────────────────────────────────
-const PALETTE = ["#1a1a2e", "#e94560", "#48dbfb", "#ffd166"];
+document.getElementById("run-btn").addEventListener("click", runChecklist);
 
-const canvas = document.getElementById("canvas");
-const statusEl = document.getElementById("status");
+// Break it on purpose: an uncaught error and a timer nobody releases.
+document.getElementById("break-btn").addEventListener("click", () => {
+  setTimeout(() => {
+    throw new Error("Intentional: this is what a dirty console looks like");
+  }, 0);
 
-const buffer = createBuffer(32, 32);
-const renderer = createRenderer(canvas, PALETTE);
-const history = createHistory(50);
+  live.timers++;
+  setTimeout(() => {}, 60000); // never cleaned up
 
-// The dependency graph these modules form:
-const graph = {
-  "main.js": ["buffer.js", "renderer.js", "history.js", "paint.js"],
-  "paint.js": ["buffer.js", "renderer.js", "history.js"],
-  "renderer.js": [],
-  "buffer.js": [],
-  "history.js": []
-};
+  reportEl.textContent =
+    "broke it: one uncaught error and one leaked timer.\\n" +
+    "Check the console, then run the checklist again.";
 
-function updateStatus() {
-  statusEl.textContent = "Strokes: " + history.size;
-}
-
-createPaint({
-  canvas,
-  buffer,
-  renderer,
-  history,
-  color: 1,
-  onchange: updateStatus
+  // The error is asynchronous, so inspect right after it has fired.
+  setTimeout(runChecklist, 60);
 });
 
-document.getElementById("btn-undo").addEventListener("click", () => {
-  const previous = history.pop();
-  if (!previous) return;
-  buffer.pixels.set(previous);
-  renderer.render(buffer);
-  updateStatus();
-});
-
-renderer.render(buffer);
-updateStatus();
-
-document.getElementById("graph").textContent =
-  "dependency graph\\n" + JSON.stringify(graph, null, 2);
-console.log("Modules wired:", Object.keys(graph).join(", "));`
+runChecklist();`
 	}
 };

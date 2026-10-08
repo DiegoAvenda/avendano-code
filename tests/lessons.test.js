@@ -76,7 +76,7 @@ test('the shipped lesson index stays lightweight (metadata only)', () => {
 
 test('challenge lessons are flagged in both the index and the content', () => {
 	const flagged = lessonList.filter((entry) => entry.type === 'challenge');
-	assert.ok(flagged.length >= 2, 'each module should close its arc with a challenge');
+	assert.ok(flagged.length >= 1, 'each module should close its arc with a challenge');
 
 	for (const entry of flagged) {
 		const lesson = lessons.find((candidate) => candidate.id === entry.id);

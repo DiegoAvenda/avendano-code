@@ -13,7 +13,7 @@ Canvas and data structures by building real projects. No backend: everything run
 browser and progress is stored in `localStorage`.
 
 The course is organised in **modules**, and each module is one project (currently the
-Pixel Art Editor and the Diagram Builder). Each lesson has prose (markdown), a task, a
+Pixel Art Editor). Each lesson has prose (markdown), a task, a
 concept, a "why it matters" note and runnable HTML/CSS/JS starter code that the learner
 edits in a CodeMirror editor and runs inside a sandboxed iframe with a captured console.
 
@@ -37,7 +37,7 @@ live in `package.json`; read them there instead of assuming.
 4. **Tests are the contract.** If a test fails, fix the code or the content. Change or
    delete a test only when the invariant itself is being deliberately changed, and say so.
 5. **Renumbering, inserting or moving lessons requires a progress migration** and a
-   `STORAGE_VERSION` bump (section 7). The current storage version is **4**.
+   `STORAGE_VERSION` bump (section 7). The current storage version is **5**.
 6. **`lessonList` carries only `{ id, title }`.** Heavy lesson content stays in
    `curriculum/` so the shell does not ship the whole course.
 7. **Do not add dependencies without discussing it.** The markdown renderer and the test
@@ -136,7 +136,7 @@ curriculum structure and exports:
 - `modules`: the projects, each
   `{ id, label, short, project, stack, description, from, to }`
 - `phases`: the labelled stretches inside a module, each `{ id, label, from, to }`.
-  Module 0 numbers them `Phase 0.x`; Module 1 uses `Phase 1…3`.
+  Module 1 numbers them `Phase 1…3`.
 - `lessonList`: metadata only, `{ id, title }` per lesson
 - `loaders`: `{ id: () => import('./curriculum/lesson-NN.js') }`
 - `loadLesson(id)` / `loadAllLessons()` / `getModule(id)` / `getPhaseLabel(id)`
@@ -153,7 +153,7 @@ curriculum structure and exports:
 6. Every `getElementById("x")` used by a lesson exists in that lesson's HTML.
 7. Every CSS class used by a lesson is defined in that lesson's CSS.
 8. Each lesson's `<title>` and first comment are `"<module.project> — Lesson <id>"`
-   (e.g. `Pixel Art Editor — Lesson 29`, `Diagram Builder — Lesson 36`).
+   (e.g. `Pixel Art Editor — Lesson 18`).
 
 ### Adding a lesson
 

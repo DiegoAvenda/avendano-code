@@ -96,24 +96,42 @@
 	 * lesson facts always come from lessons.js.
 	 */
 	const PLAN = [
-		{ id: '0.1', focus: 'Pixel Art (the page itself)', duration: '3 weeks', state: 'open' },
-		{ id: '0.2', focus: 'Pixel Art (canvas + algorithms)', duration: '3–4 weeks', state: 'open' },
-		{ id: '0.5', focus: 'Tooling bridge', duration: '1 week', state: 'open' },
-		{ id: '1', focus: 'Flowchart builder', duration: '4–5 weeks', state: 'open' },
-		{ id: '2', focus: 'Block editor', duration: '4 weeks', state: 'soon' },
-		{ id: '3', focus: 'Mini-Jira', duration: '5 weeks', state: 'soon' }
+		{ id: '1', focus: 'JavaScript, DOM & Canvas', duration: '3 weeks', state: 'open' },
+		{ id: '2', focus: 'Tooling Bridge (Vite, TS, testing)', duration: '1 week', state: 'soon' },
+		{ id: '3', focus: 'Flowchart Builder', duration: '4–5 weeks', state: 'soon' },
+		{ id: '4', focus: 'Block Editor', duration: '4 weeks', state: 'soon' }
 	];
 
 	const UPCOMING = [
 		{
-			label: 'Module 2 — Block Editor',
+			label: 'Future — Block Editor',
 			project: 'Block Editor',
 			stack: ['React', 'TypeScript', 'Trees', 'CI/PRs']
 		},
 		{
-			label: 'Module 3 — Mini-Jira',
+			label: 'Future — Mini-Jira',
 			project: 'Mini-Jira',
 			stack: ['Next.js', 'TypeScript', 'Fullstack', 'CD/E2E']
+		}
+	];
+
+	const LOCKED_MODULES = [
+		{
+			id: 'm2',
+			label: 'Module 2 — Flowchart & Diagram Builder',
+			project: 'Diagram Builder',
+			pitch:
+				'A full professional build with Vite, TypeScript and Vitest. Build a node-based editor with a spatial hash grid for performance and union-find for connectivity.',
+			description:
+				'Modelling, lookup vs. spatial indexing, graphs, Vitest + ESLint, accessibility, memory.',
+			stack: ['Vite', 'TypeScript', 'Canvas 2D', 'Vitest'],
+			phases: [
+				{ id: 'p1', label: 'Phase 1 — Model, Access & Scale' },
+				{ id: 'p2', label: 'Phase 2 — Accessibility & Memory' },
+				{ id: 'p3', label: 'Phase 3 — Closing' }
+			],
+			lessonsCount: 9,
+			challengesCount: 1
 		}
 	];
 
@@ -182,7 +200,7 @@
 		{
 			question: 'What do I end up with?',
 			answer:
-				'One foundations lab plus three portfolio projects, each deployed on a public URL and documented with benchmarks, an ADR-style README and an accessibility checklist.'
+				'A solid JavaScript foundation plus portfolio projects, each deployed on a public URL and documented with benchmarks, an ADR-style README and an accessibility checklist.'
 		}
 	];
 </script>
@@ -381,6 +399,87 @@
 							aria-hidden="true"
 							class="absolute right-0 bottom-0 h-8 w-8 border-r-2 border-b-2 border-cyber-cyan opacity-0 transition-opacity group-hover:opacity-100"
 						></div>
+					</article>
+				{/each}
+
+				{#each LOCKED_MODULES as module (module.id)}
+					<article
+						class="clip-card group relative border border-gray-800 bg-cyber-surface transition-colors duration-300"
+					>
+						<div
+							class="flex items-center justify-between border-b border-gray-800 bg-black/50 px-4 py-2 text-[11px] tracking-widest text-gray-500 uppercase"
+						>
+							<span>SYS.DAT // 0X02</span>
+							<span class="text-gray-500"> STATUS: LOCKED </span>
+						</div>
+
+						<div class="flex flex-col gap-4 p-6 opacity-75">
+							<div class="flex flex-col gap-1">
+								<h3
+									class="m-0 text-xl font-bold tracking-wide text-gray-400 uppercase transition-colors"
+								>
+									{module.label}
+								</h3>
+								<p class="m-0 text-xs tracking-widest text-gray-500 uppercase">
+									PROJECT: {module.project}
+								</p>
+								{#if module.challengesCount > 0}
+									<p class="m-0 text-[11px] tracking-widest text-gray-500 uppercase">
+										⚔ {module.challengesCount} challenge{module.challengesCount === 1 ? '' : 's'}
+									</p>
+								{/if}
+							</div>
+
+							<p class="m-0 text-sm leading-relaxed text-gray-400">{module.pitch}</p>
+
+							<details class="border-t border-gray-800 pt-3">
+								<summary
+									class="cursor-pointer list-none text-[11px] tracking-widest text-gray-500 uppercase hover:text-gray-400 [&::-webkit-details-marker]:hidden"
+								>
+									▸ Technical detail
+								</summary>
+								<p class="mt-2 mb-0 text-xs leading-relaxed text-gray-500">
+									{module.description}
+								</p>
+							</details>
+
+							<ul class="m-0 flex list-none flex-wrap gap-2 p-0">
+								{#each module.stack as tool (tool)}
+									<li
+										class="border border-gray-700 px-2 py-1 text-[11px] tracking-wider text-gray-500 uppercase"
+									>
+										{tool}
+									</li>
+								{/each}
+							</ul>
+
+							<ul class="m-0 flex list-none flex-col gap-1 p-0">
+								{#each module.phases as phase (phase.id)}
+									<li class="flex items-start gap-2 text-xs text-gray-500">
+										<span class="text-gray-600">&gt;</span>
+										<span>{phase.label}</span>
+									</li>
+								{/each}
+							</ul>
+
+							<div class="mt-auto flex flex-col gap-3">
+								<div
+									class="flex items-center justify-between text-[11px] tracking-widest text-gray-500 uppercase"
+								>
+									<span>0/{module.lessonsCount} lessons</span>
+									<span class="text-gray-500 tabular-nums">0%</span>
+								</div>
+								<div class="h-1 w-full bg-gray-800">
+									<div class="h-full bg-gray-600 shadow-none" style="width: 0%"></div>
+								</div>
+								<button
+									disabled
+									class="clip-button inline-flex cursor-not-allowed items-center justify-center border border-gray-700 bg-transparent px-4 py-3 text-sm font-bold tracking-wider text-gray-500 uppercase"
+								>
+									Locked (Complete Module 1)
+								</button>
+							</div>
+						</div>
 					</article>
 				{/each}
 			</div>
