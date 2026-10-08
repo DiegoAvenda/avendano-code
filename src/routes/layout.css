@@ -196,6 +196,86 @@ body {
 	}
 
 	/*
+	 * Lab workspace. The column widths are runtime numbers, so they travel in an
+	 * inline style; what cannot be a utility lives here: the dvh fallback for the
+	 * app shell, the separator affordance and the vertical focus-strip label.
+	 */
+	.lab-viewport {
+		height: 100vh;
+		height: 100dvh;
+	}
+
+	.lab-splitter {
+		position: relative;
+		touch-action: none;
+		background: transparent;
+	}
+
+	.lab-splitter[data-orientation='vertical'] {
+		cursor: col-resize;
+		width: 6px;
+	}
+
+	.lab-splitter[data-orientation='horizontal'] {
+		cursor: row-resize;
+		height: 6px;
+		flex: 0 0 6px;
+	}
+
+	.lab-splitter::after {
+		content: '';
+		position: absolute;
+		background: var(--color-line);
+		transition:
+			background 150ms ease,
+			width 150ms ease,
+			height 150ms ease;
+	}
+
+	.lab-splitter[data-orientation='vertical']::after {
+		top: 0;
+		bottom: 0;
+		left: 50%;
+		width: 1px;
+		transform: translateX(-50%);
+	}
+
+	.lab-splitter[data-orientation='horizontal']::after {
+		left: 0;
+		right: 0;
+		top: 50%;
+		height: 1px;
+		transform: translateY(-50%);
+	}
+
+	.lab-splitter:hover::after,
+	.lab-splitter:focus-visible::after,
+	.lab-splitter[data-dragging='true']::after {
+		background: var(--color-cyber-cyan);
+	}
+
+	.lab-splitter[data-orientation='vertical']:hover::after,
+	.lab-splitter[data-orientation='vertical']:focus-visible::after,
+	.lab-splitter[data-orientation='vertical'][data-dragging='true']::after {
+		width: 2px;
+	}
+
+	.lab-splitter[data-orientation='horizontal']:hover::after,
+	.lab-splitter[data-orientation='horizontal']:focus-visible::after,
+	.lab-splitter[data-orientation='horizontal'][data-dragging='true']::after {
+		height: 2px;
+	}
+
+	.lab-splitter:focus-visible {
+		outline: 2px solid var(--color-cyber-cyan);
+		outline-offset: -2px;
+	}
+
+	.lab-strip-label {
+		writing-mode: vertical-rl;
+	}
+
+	/*
 	 * Lesson prose is injected with {@html} from src/lib/markdown.js, so the
 	 * generated tags cannot carry utility classes. The renderer emits these
 	 * semantic names and they are built from the same Tailwind utilities here.

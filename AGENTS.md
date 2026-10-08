@@ -223,9 +223,17 @@ its prose announces itself, and that every module has at least one.
 - Markdown-generated markup cannot carry utilities, so the renderer emits semantic `.md-*`
   classes styled once with `@apply` in `layout.css`. Keep that list in sync with
   `src/lib/markdown.js`.
-- Layout notes: the mobile breakpoint is `max-[900px]`; the playground gives the editor
-  `flex-[3]` and the preview `flex-[2]`; the console is 128 px tall and collapsible (its
-  collapse button lives in the console header).
+- Layout notes: `Playground.svelte` is the lab **workspace** (lesson | editor | preview).
+  Above 1100 px it is a CSS grid whose column widths come from an inline
+  `grid-template-columns` (runtime numbers, so they cannot be utilities); below that it
+  becomes a single pane with `Lesson | Code | Preview` tabs. `Splitter.svelte` reports a
+  new size through `onchange` (drag, touch and arrow keys), `ConsoleDrawer.svelte` owns
+  the collapsed console row, and `.lab-viewport` / `.lab-splitter` in `layout.css` hold
+  the `dvh` fallback and the separator affordance. The app shell never scrolls; only the
+  lesson panel, the editor and the console do.
+- Workspace layout preferences (column widths, console height, pin, preview fit) live in
+  `src/lib/stores/labLayout.js`, under their own localStorage key, and are sanitised on
+  read. Never merge them into the progress payload.
 
 ## 8. Repository map and where changes go
 
@@ -233,24 +241,26 @@ Import app code with the `#lib/...` subpath alias (`import { buildSrcDoc } from
 '#lib/playground/buildSrcDoc.js'`). It is declared in `package.json` → `imports`; there
 is no `svelte.config.js` and no `alias` option in the Vite config.
 
-| Change                                   | File                                                   |
-| ---------------------------------------- | ------------------------------------------------------ |
-| Palette / design tokens                  | `src/routes/layout.css` (`@theme`)                     |
-| Lesson prose or starter code             | `src/lib/content/pixel-editor/curriculum/lesson-NN.js` |
-| Curriculum order, module or phase labels | `src/lib/content/pixel-editor/lessons.js`              |
-| Editor/preview/console layout            | `src/lib/components/Playground.svelte`                 |
-| Editor wrapper (one state per tab)       | `src/lib/components/CodeEditor.svelte`                 |
-| Preview iframe host                      | `src/lib/components/Preview.svelte`                    |
-| Preview document or console bridge       | `src/lib/playground/buildSrcDoc.js`                    |
-| iframe message parsing                   | `src/lib/playground/iframeProtocol.js`                 |
-| Markdown rendering                       | `src/lib/markdown.js` + `.md-*` rules in `layout.css`  |
-| Progress format or migrations            | `src/lib/stores/progress*.js` (+ tests)                |
-| Home page / routes                       | `src/routes/+page.svelte`, `src/routes/lesson/[id]/`   |
+| Change                                                 | File                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------ |
+| Palette / design tokens                                | `src/routes/layout.css` (`@theme`)                     |
+| Lesson prose or starter code                           | `src/lib/content/pixel-editor/curriculum/lesson-NN.js` |
+| Curriculum order, module or phase labels               | `src/lib/content/pixel-editor/lessons.js`              |
+| Lab workspace layout (lesson/editor/preview/splitters) | `src/lib/components/Playground.svelte`                 |
+| Editor wrapper (one state per tab)                     | `src/lib/components/CodeEditor.svelte`                 |
+| Preview iframe host                                    | `src/lib/components/Preview.svelte`                    |
+| Panel resizer                                          | `src/lib/components/Splitter.svelte`                   |
+| Console drawer header + collapse state                 | `src/lib/components/ConsoleDrawer.svelte`              |
+| Workspace sizes persisted in localStorage              | `src/lib/stores/labLayout.js` (+ tests)                |
+| Preview document or console bridge                     | `src/lib/playground/buildSrcDoc.js`                    |
+| iframe message parsing                                 | `src/lib/playground/iframeProtocol.js`                 |
+| Markdown rendering                                     | `src/lib/markdown.js` + `.md-*` rules in `layout.css`  |
+| Progress format or migrations                          | `src/lib/stores/progress*.js` (+ tests)                |
+| Home page / routes                                     | `src/routes/+page.svelte`, `src/routes/lesson/[id]/`   |
 
 Other files worth knowing: `src/routes/lesson/[id]/+page.js` validates the lesson id
-(unknown ids go home), and `Console.svelte`, `LessonNavigation.svelte` and
-`LessonPanel.svelte` live next to the components above. Tests are `node:test` suites in
-`tests/`.
+(unknown ids go home), and `Console.svelte` (the log body) and `LessonPanel.svelte` live
+next to the components above. Tests are `node:test` suites in `tests/`.
 
 ## 9. Maintaining this file
 
