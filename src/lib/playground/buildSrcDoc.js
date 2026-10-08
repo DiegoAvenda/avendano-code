@@ -51,6 +51,29 @@ const BRIDGE_SCRIPT = `
   window.addEventListener('unhandledrejection', function(e) {
     send('error', ['Unhandled Promise: ' + (e.reason?.message || e.reason || 'unknown')]);
   });
+
+  // ── Content size ──
+  // The preview is sandboxed without same-origin, so the host cannot measure
+  // this document. It reports its own size instead, which is what the host
+  // needs to scale the lesson down in "Fit" mode.
+  function reportSize() {
+    try {
+      const doc = document.documentElement;
+      bridgeTarget.postMessage({
+        __playgroundSize: true,
+        width: Math.max(doc.scrollWidth, doc.clientWidth),
+        height: Math.max(doc.scrollHeight, doc.clientHeight)
+      }, '*');
+    } catch (e) { /* ignore */ }
+  }
+
+  window.addEventListener('load', reportSize);
+  window.addEventListener('resize', reportSize);
+  document.addEventListener('DOMContentLoaded', reportSize);
+  if (typeof ResizeObserver !== 'undefined') {
+    try { new ResizeObserver(reportSize).observe(document.documentElement); } catch (e) { /* ignore */ }
+  }
+  reportSize();
 })();
 <\/script>
 `;

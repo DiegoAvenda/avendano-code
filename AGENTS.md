@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Instructions for any coding agent working in this repository (Codex, DeepSeek-based
-agents, or a human in a hurry). Sections 1–4 hold the rules that are cheapest to break
+agents, or a human in a hurry). Sections 1–5 hold the rules that are cheapest to break
 and most expensive to fix: read them before changing code.
 
 ---
@@ -37,7 +37,7 @@ live in `package.json`; read them there instead of assuming.
 4. **Tests are the contract.** If a test fails, fix the code or the content. Change or
    delete a test only when the invariant itself is being deliberately changed, and say so.
 5. **Renumbering, inserting or moving lessons requires a progress migration** and a
-   `STORAGE_VERSION` bump (section 6). The current storage version is **4**.
+   `STORAGE_VERSION` bump (section 7). The current storage version is **4**.
 6. **`lessonList` carries only `{ id, title }`.** Heavy lesson content stays in
    `curriculum/` so the shell does not ship the whole course.
 7. **Do not add dependencies without discussing it.** The markdown renderer and the test
@@ -45,10 +45,24 @@ live in `package.json`; read them there instead of assuming.
 8. **Language:** the user talks to you in Spanish, so answer in Spanish. Everything in the
    repository (UI text, comments, tests, README, lesson prose, module labels) is English.
 9. **Context discipline.** Do not read the whole repository. Start from the file the task
-   points to (section 8), and read only what the change needs. In particular, do not open
+   points to (section 9), and read only what the change needs. In particular, do not open
    all `curriculum/lesson-NN.js` files unless the task is about all of them.
 
-## 3. Commands and definition of done
+## 3. Git & Branching Protocol (STRICT)
+
+1. **Branch Isolation:** Before making ANY file modifications or commits, check the current branch (`git branch --show-current`).
+   - NEVER make commits directly on `main`.
+   - NEVER make commits on a branch that has already been merged or deleted in `origin`.
+   - If currently on `main` or an obsolete branch, ALWAYS create and switch to a new feature branch first:
+     ```sh
+     git checkout -b feature/short-description
+     ```
+2. **Atomic Commits:** When instructed to make step-by-step commits:
+   - Make small, clear, atomic local commits on the working feature branch.
+   - Use imperative present tense commit messages (e.g., `git commit -m "feat(ui): add splitter component"`).
+3. **No Automatic Pushing:** NEVER run `git push` or publish branches to remote automatically. Local commits stay local until the user explicitly decides to sync/push them.
+
+## 4. Commands and definition of done
 
 ```sh
 pnpm dev          # dev server
@@ -84,7 +98,7 @@ A change is done when all of these hold:
    (~760 px) widths, checking the preview, the console and lesson navigation.
    Screenshots are the proof.
 
-## 4. Traps that have already caused bugs
+## 5. Traps that have already caused bugs
 
 These are not hypothetical: each one shipped or nearly shipped.
 
@@ -114,7 +128,7 @@ These are not hypothetical: each one shipped or nearly shipped.
 6. **Debounced saves capture the lesson id.** The pending save is flushed on destroy. A
    save must never be attributed to whichever lesson is open when the timer fires.
 
-## 5. Content model
+## 6. Content model
 
 `src/lib/content/pixel-editor/lessons.js` is the **single source of truth** for the
 curriculum structure and exports:
@@ -148,7 +162,7 @@ curriculum structure and exports:
 3. Add `NN: () => import('./curriculum/lesson-NN.js')` to `loaders`.
 4. Extend `phases` (and `modules` when a new project starts).
 5. Run `node --test`. Adding lessons **in the middle** of the sequence also requires a
-   progress migration (section 6).
+   progress migration (section 7).
 
 ```js
 // Pixel Art Editor — Lesson 29: Memory I: Lifetime & Cleanup
@@ -197,7 +211,7 @@ Conventions:
 `tests/lessons.test.js` enforces that each challenge is flagged in both places, that
 its prose announces itself, and that every module has at least one.
 
-## 6. Progress data
+## 7. Progress data
 
 - Progress lives in `localStorage` under `frontend-data-structures-progress`, with a
   `version` field. `src/lib/stores/progressMigrations.js` holds the **pure** migration
@@ -206,7 +220,7 @@ its prose announces itself, and that every module has at least one.
   Never drop a payload you cannot interpret; keep what is readable. `completedLessons`,
   `currentLesson` and `editorContents` must all be migrated together.
 
-## 7. Styling
+## 8. Styling
 
 - The app is themed as a cyberpunk terminal. `src/routes/layout.css` is the single
   entry point and holds every token under `@theme`: the brand palette
@@ -223,41 +237,51 @@ its prose announces itself, and that every module has at least one.
 - Markdown-generated markup cannot carry utilities, so the renderer emits semantic `.md-*`
   classes styled once with `@apply` in `layout.css`. Keep that list in sync with
   `src/lib/markdown.js`.
-- Layout notes: the mobile breakpoint is `max-[900px]`; the playground gives the editor
-  `flex-[3]` and the preview `flex-[2]`; the console is 128 px tall and collapsible (its
-  collapse button lives in the console header).
+- Layout notes: `Playground.svelte` is the lab **workspace** (lesson | editor | preview).
+  Above 1100 px it is a CSS grid whose column widths come from an inline
+  `grid-template-columns` (runtime numbers, so they cannot be utilities); below that it
+  becomes a single pane with `Lesson | Code | Preview` tabs. `Splitter.svelte` reports a
+  new size through `onchange` (drag, touch and arrow keys), `ConsoleDrawer.svelte` owns
+  the collapsed console row, and `.lab-viewport` / `.lab-splitter` in `layout.css` hold
+  the `dvh` fallback and the separator affordance. The app shell never scrolls; only the
+  lesson panel, the editor and the console do.
+- Workspace layout preferences (column widths, console height, pin, preview fit) live in
+  `src/lib/stores/labLayout.js`, under their own localStorage key, and are sanitised on
+  read. Never merge them into the progress payload.
 
-## 8. Repository map and where changes go
+## 9. Repository map and where changes go
 
 Import app code with the `#lib/...` subpath alias (`import { buildSrcDoc } from
 '#lib/playground/buildSrcDoc.js'`). It is declared in `package.json` → `imports`; there
 is no `svelte.config.js` and no `alias` option in the Vite config.
 
-| Change                                   | File                                                   |
-| ---------------------------------------- | ------------------------------------------------------ |
-| Palette / design tokens                  | `src/routes/layout.css` (`@theme`)                     |
-| Lesson prose or starter code             | `src/lib/content/pixel-editor/curriculum/lesson-NN.js` |
-| Curriculum order, module or phase labels | `src/lib/content/pixel-editor/lessons.js`              |
-| Editor/preview/console layout            | `src/lib/components/Playground.svelte`                 |
-| Editor wrapper (one state per tab)       | `src/lib/components/CodeEditor.svelte`                 |
-| Preview iframe host                      | `src/lib/components/Preview.svelte`                    |
-| Preview document or console bridge       | `src/lib/playground/buildSrcDoc.js`                    |
-| iframe message parsing                   | `src/lib/playground/iframeProtocol.js`                 |
-| Markdown rendering                       | `src/lib/markdown.js` + `.md-*` rules in `layout.css`  |
-| Progress format or migrations            | `src/lib/stores/progress*.js` (+ tests)                |
-| Home page / routes                       | `src/routes/+page.svelte`, `src/routes/lesson/[id]/`   |
+| Change                                                 | File                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------ |
+| Palette / design tokens                                | `src/routes/layout.css` (`@theme`)                     |
+| Lesson prose or starter code                           | `src/lib/content/pixel-editor/curriculum/lesson-NN.js` |
+| Curriculum order, module or phase labels               | `src/lib/content/pixel-editor/lessons.js`              |
+| Lab workspace layout (lesson/editor/preview/splitters) | `src/lib/components/Playground.svelte`                 |
+| Editor wrapper (one state per tab)                     | `src/lib/components/CodeEditor.svelte`                 |
+| Preview iframe host                                    | `src/lib/components/Preview.svelte`                    |
+| Panel resizer                                          | `src/lib/components/Splitter.svelte`                   |
+| Console drawer header + collapse state                 | `src/lib/components/ConsoleDrawer.svelte`              |
+| Workspace sizes persisted in localStorage              | `src/lib/stores/labLayout.js` (+ tests)                |
+| Preview document or console bridge                     | `src/lib/playground/buildSrcDoc.js`                    |
+| iframe message parsing                                 | `src/lib/playground/iframeProtocol.js`                 |
+| Markdown rendering                                     | `src/lib/markdown.js` + `.md-*` rules in `layout.css`  |
+| Progress format or migrations                          | `src/lib/stores/progress*.js` (+ tests)                |
+| Home page / routes                                     | `src/routes/+page.svelte`, `src/routes/lesson/[id]/`   |
 
 Other files worth knowing: `src/routes/lesson/[id]/+page.js` validates the lesson id
-(unknown ids go home), and `Console.svelte`, `LessonNavigation.svelte` and
-`LessonPanel.svelte` live next to the components above. Tests are `node:test` suites in
-`tests/`.
+(unknown ids go home), and `Console.svelte` (the log body) and `LessonPanel.svelte` live
+next to the components above. Tests are `node:test` suites in `tests/`.
 
-## 9. Maintaining this file
+## 10. Maintaining this file
 
 - Keep this file stable: rules, invariants and traps only. Do not record project status,
   lesson counts or "what we did last" here; they go stale and the code is the source of
   truth.
-- When a new bug teaches a lesson the tests cannot catch, add it to section 4 with the
+- When a new bug teaches a lesson the tests cannot catch, add it to section 5 with the
   reason. When it can be caught by a test, write the test instead and mention it here.
 - Keep it under ~300 lines and well under 32 KiB (Codex truncates project instructions at
   its limit). Put the most important rules first.
