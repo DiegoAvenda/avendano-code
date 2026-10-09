@@ -11,7 +11,8 @@ import {
 	migrateLegacyV1,
 	migrateToCurrent,
 	shiftProgressToV4,
-	shiftProgressToV5
+	shiftProgressToV5,
+	shiftProgressToV6
 } from './progressMigrations.js';
 
 const STORAGE_KEY = 'frontend-data-structures-progress';
@@ -72,14 +73,19 @@ function loadProgress() {
 				};
 			}
 
-			// v4 → v5: Module 1 cutdown
+			// v5 → v6: introductory lessons were inserted before Module 1.
+			if (parsed.version === 5) {
+				return persistMigration(shiftProgressToV6(parsed));
+			}
+
+			// v4 → v5 → v6: Module 1 cutdown, then the new introduction.
 			if (parsed.version === 4) {
-				return persistMigration(shiftProgressToV5(parsed));
+				return persistMigration(shiftProgressToV6(shiftProgressToV5(parsed)));
 			}
 
 			// v3 → v4 → v5.
 			if (parsed.version === 3) {
-				return persistMigration(shiftProgressToV5(shiftProgressToV4(parsed)));
+				return persistMigration(shiftProgressToV6(shiftProgressToV5(shiftProgressToV4(parsed))));
 			}
 
 			// v2 → v3 → v4 → v5.

@@ -1,39 +1,28 @@
-// Pixel Art Editor — Lesson 22: JavaScript Starts Fighting Back
+// Pixel Art Editor — Lesson 14: Find the Recursion Limit
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 22,
-	title: 'JavaScript Starts Fighting Back',
-	description: `The editor now has real data: a diagram node with an id, a position and a label.
+	title: 'Find the Recursion Limit',
+	description: `The recursive fill is correct. So the next step is to make it bigger and see what happens.
+
+Every call to \`floodFill\` occupies a **stack frame**: the arguments, the return address, the place to come back to. Those frames live in the call stack, and the call stack is not infinite — the browser gives each one a fixed budget.
+
+So we are going to grow the region on purpose:
 
 \`\`\`
-const node = { id: "a1", x: 100, y: 200, label: "Start" };
+16 × 16   →   1,024 cells
+64 × 64   →   4,096 cells
+256 × 256 → 65,536 cells
 \`\`\`
 
-Several parts of the program use it:
-
-\`\`\`
-function connectNode(node) { /* … */ }
-function moveNode(node, x, y) { /* … */ }
-\`\`\`
-
-And then the mistakes start. They are not exotic; they are the ones everybody makes:
-
-\`\`\`
-node.lable              // a typo
-moveNode(node, "100", 200)   // a string where a number was expected
-moveNode({ id: "b2", x: 10 })  // a node without y
-\`\`\`
-
-JavaScript runs all three. Nothing crashes at the place where the mistake is. Instead the value travels through the program and the failure appears later — as \`undefined\`, as \`NaN\`, or as a number that quietly became a string.
-
-That delay is the real problem: the further the failure is from its cause, the harder it is to find.`,
-	task: `1. Press **Run the mistakes** and read the report — each row shows the call, the value it produced and when the problem surfaces.
-2. Find the three failure modes: a misspelled property, a value with the wrong type, and a missing property.
-3. Notice that nothing throws. The program keeps running with bad data.
-4. Add \`console.log(node)\` after each call to see how the object changed.
-5. Write down the question this leaves open: could the computer detect this *before* running the program?`,
-	concept: `**Runtime-only checking** — JavaScript validates values while the program runs, so a mismatch is discovered when the bad value is finally used, not where it was introduced.`,
-	whyItMatters: `This is not an argument against JavaScript; it is the description of a real limitation. Once you have felt the distance between cause and symptom, the next lessons have an obvious purpose: moving the detection earlier.`,
+At some size the fill stops with \`RangeError: Maximum call stack size exceeded\`. An **algorithm** is a recipe of steps to solve a problem: how to fill a shape, how to find the nearest box, how to avoid visiting the same place twice. This one is still correct — that is not a bug in the algorithm. It is a property of the machine that runs it.`,
+	task: `1. Press 16 × 16, then 32 × 32 and read the **max depth** in the report — it tracks how deep the recursion went.
+2. Keep going: 64 × 64, 128 × 128, 256 × 256.
+3. Find the size where the fill reports a \`RangeError\` instead of a result.
+4. Notice that the algorithm is still correct at every size — only the budget changed.
+5. Before looking at the next lesson, write down your guess: what would you need so that the amount of pending work no longer lives in the call stack?`,
+	concept: `**The call stack is a budget.** Recursion stores pending work in stack frames; when the recursion is deeper than the budget, execution stops with a \`RangeError\`.`,
+	whyItMatters: `This is the moment where "a correct solution" and "a solution that works in production" separate. The problem is not the traversal order or the formula — it is *where the pending work is stored*. That question is the bridge to the next lesson.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -43,11 +32,16 @@ That delay is the real problem: the further the failure is from its cause, the h
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>JavaScript starts fighting back</h3>
+  <h3>Pixel Editor — how deep can recursion go?</h3>
   <div id="controls">
-    <button id="run-btn">Run the mistakes</button>
+    <button class="size-btn" data-size="16">16 × 16</button>
+    <button class="size-btn" data-size="32">32 × 32</button>
+    <button class="size-btn" data-size="64">64 × 64</button>
+    <button class="size-btn" data-size="128">128 × 128</button>
+    <button class="size-btn" data-size="256">256 × 256</button>
   </div>
-  <pre id="report">Press Run to send three bad values through the program.</pre>
+  <canvas id="canvas" width="64" height="64"></canvas>
+  <p id="report">Pick a size to run a recursive fill from the top-left corner.</p>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -63,7 +57,8 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#run-btn {
+#controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.size-btn {
   background: #2a2a44;
   color: #e0e0e0;
   border: 1px solid #3a3a5c;
@@ -72,79 +67,92 @@ h3 { font-size: 14px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#run-btn:hover { border-color: #8b8bcc; }
+.size-btn:hover { border-color: #8b8bcc; }
+#canvas {
+  width: 320px;
+  height: 320px;
+  image-rendering: pixelated;
+  border: 2px solid #3a3a5c;
+}
 #report {
-  background: #111122;
-  border: 1px solid #2a2a44;
-  border-radius: 6px;
-  padding: 16px;
-  font-family: monospace;
-  font-size: 12px;
-  line-height: 1.8;
-  color: #b0b0c8;
-  white-space: pre;
-  min-width: 600px;
+  color: #8888aa;
+  font-size: 13px;
+  text-align: center;
+  white-space: pre-line;
+  min-height: 54px;
+  max-width: 620px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 22: JavaScript Starts Fighting Back
+		javascript: `// Pixel Art Editor — Lesson 22: Find the Recursion Limit
 
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 const reportEl = document.getElementById("report");
 
-const node = { id: "a1", x: 100, y: 200, label: "Start" };
+// A recursive fill, exactly like the bucket from the previous lesson.
+function fillRecursive(buffer, width, height, x, y, target, replacement, state) {
+  if (x < 0 || x >= width || y < 0 || y >= height) return;
 
-function connectNode(target) {
-  return target.id.toUpperCase() + " connected at " + target.x + "," + target.y;
+  const index = y * width + x;
+  if (buffer[index] !== target || target === replacement) return;
+
+  buffer[index] = replacement;
+  state.depth++;
+  if (state.depth > state.maxDepth) state.maxDepth = state.depth;
+
+  fillRecursive(buffer, width, height, x + 1, y, target, replacement, state);
+  fillRecursive(buffer, width, height, x - 1, y, target, replacement, state);
+  fillRecursive(buffer, width, height, x, y + 1, target, replacement, state);
+  fillRecursive(buffer, width, height, x, y - 1, target, replacement, state);
+
+  state.depth--;
 }
 
-function moveNode(target, x, y) {
-  target.x = x;
-  target.y = y;
-  return target;
+function renderBuffer(buffer, size) {
+  canvas.width = size;
+  canvas.height = size;
+
+  const image = ctx.createImageData(size, size);
+  for (let i = 0; i < buffer.length; i++) {
+    const color = buffer[i] === 0 ? [26, 26, 46] : [233, 69, 96];
+    const o = i * 4;
+    image.data[o] = color[0];
+    image.data[o + 1] = color[1];
+    image.data[o + 2] = color[2];
+    image.data[o + 3] = 255;
+  }
+  ctx.putImageData(image, 0, 0);
 }
 
-function drawLink(from, to) {
-  // distance between two nodes
-  return Math.sqrt((to.x - from.x) ** 2 + (to.y - from.y) ** 2);
+function run(size) {
+  const buffer = new Uint8Array(size * size);
+  const state = { depth: 0, maxDepth: 0 };
+  const start = performance.now();
+  let outcome = "completed";
+  let filled = 0;
+
+  try {
+    fillRecursive(buffer, size, size, 0, 0, 0, 1, state);
+  } catch (error) {
+    outcome = error.constructor.name + ": " + error.message;
+  }
+
+  const ms = performance.now() - start;
+  for (let i = 0; i < buffer.length; i++) if (buffer[i] === 1) filled++;
+
+  renderBuffer(buffer, size);
+
+  reportEl.textContent =
+    size + "×" + size + " (" + (size * size).toLocaleString() + " cells)\\n" +
+    "filled: " + filled.toLocaleString() + " · max depth: " + state.maxDepth.toLocaleString() + "\\n" +
+    outcome + " · " + ms.toFixed(1) + " ms";
+
+  console.log(size + "x" + size, "->", outcome, "| max depth", state.maxDepth);
 }
 
-document.getElementById("run-btn").addEventListener("click", () => {
-  const rows = [];
+document.querySelectorAll(".size-btn").forEach((btn) => {
+  btn.addEventListener("click", () => run(Number(btn.dataset.size)));
+});
 
-  // 1. A typo in a property name
-  const typo = node.lable;
-  rows.push(
-    "node.lable\\n" +
-    "  value      : " + String(typo) + "\\n" +
-    "  problem    : undefined — no error, no warning\\n" +
-    "  surfaces   : when something finally reads .label"
-  );
-
-  // 2. The right value with the wrong type
-  moveNode(node, "100", 200);
-  const distance = drawLink(node, { x: 160, y: 200 });
-  rows.push(
-    "moveNode(node, \\"100\\", 200)\\n" +
-    "  node.x     : " + JSON.stringify(node.x) + "  (" + typeof node.x + ")\\n" +
-    "  node.x + 10: " + JSON.stringify(node.x + 10) + "\\n" +
-    "  distance   : " + distance + "\\n" +
-    "  problem    : the string travelled into the maths"
-  );
-
-  // 3. A node that is missing a property
-  const incomplete = { id: "b2", x: 10 };
-  moveNode(incomplete, 10, 50);
-  const gap = drawLink(incomplete, { x: 40, y: 90 });
-  rows.push(
-    "moveNode({ id: \\"b2\\", x: 10 }, 10, 50)\\n" +
-    "  node.y     : " + String(incomplete.y) + "\\n" +
-    "  distance   : " + gap + "\\n" +
-    "  problem    : NaN — a missing value became a number"
-  );
-
-  reportEl.textContent = rows.join("\\n\\n") +
-    "\\n\\nthree mistakes, three delayed symptoms,\\nzero messages pointing at the cause.";
-
-  console.log("node after the mistakes:", node);
-  console.log("NaN distance:", gap);
-});`
+run(16);`
 	}
 };

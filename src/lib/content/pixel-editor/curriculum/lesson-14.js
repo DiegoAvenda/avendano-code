@@ -1,28 +1,28 @@
-// Pixel Art Editor — Lesson 14: Find the Recursion Limit
+// Pixel Art Editor — Lesson 6: Describe Things
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 14,
-	title: 'Find the Recursion Limit',
-	description: `The recursive fill is correct. So the next step is to make it bigger and see what happens.
+	title: 'Describe Things',
+	description: `The editor is starting to remember several things at once: the selected color, the active tool and the size of the grid.
 
-Every call to \`floodFill\` occupies a **stack frame**: the arguments, the return address, the place to come back to. Those frames live in the call stack, and the call stack is not infinite — the browser gives each one a fixed budget.
-
-So we are going to grow the region on purpose:
+Three loose variables work for a while, but they belong together — they describe **the state of the editor**. An object groups related values under a single name:
 
 \`\`\`
-16 × 16   →   1,024 cells
-64 × 64   →   4,096 cells
-256 × 256 → 65,536 cells
+{
+  selectedColor: "#e94560",
+  tool: "pencil",
+  gridSize: 16
+}
 \`\`\`
 
-At some size the fill stops with \`RangeError: Maximum call stack size exceeded\`. An **algorithm** is a recipe of steps to solve a problem: how to fill a shape, how to find the nearest box, how to avoid visiting the same place twice. This one is still correct — that is not a bug in the algorithm. It is a property of the machine that runs it.`,
-	task: `1. Press 16 × 16, then 32 × 32 and read the **max depth** in the report — it tracks how deep the recursion went.
-2. Keep going: 64 × 64, 128 × 128, 256 × 256.
-3. Find the size where the fill reports a \`RangeError\` instead of a result.
-4. Notice that the algorithm is still correct at every size — only the budget changed.
-5. Before looking at the next lesson, write down your guess: what would you need so that the amount of pending work no longer lives in the call stack?`,
-	concept: `**The call stack is a budget.** Recursion stores pending work in stack frames; when the recursion is deeper than the budget, execution stops with a \`RangeError\`.`,
-	whyItMatters: `This is the moment where "a correct solution" and "a solution that works in production" separate. The problem is not the traversal order or the formula — it is *where the pending work is stored*. That question is the bridge to the next lesson.`,
+Now the whole state can be read, passed to a function and printed as one thing.`,
+	task: `1. Look at the \`editorState\` object — it groups three related values.
+2. Change \`selectedColor\` to another palette color and run again.
+3. Add a new property such as \`zoom: 1\` and display it.
+4. Reach a value with dot notation (\`editorState.tool\`) and again with bracket notation (\`editorState["tool"]\`).
+5. Log the whole object to the console and expand it in DevTools.`,
+	concept: `**Objects and properties** — grouping related values together to model an entity or a piece of application state.`,
+	whyItMatters: `The editor's state will keep growing. Keeping it in one object means we can pass it around as a unit, print it, and later decide how to store it — instead of chasing a growing pile of loose variables.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -32,16 +32,9 @@ At some size the fill stops with \`RangeError: Maximum call stack size exceeded\
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Pixel Editor — how deep can recursion go?</h3>
-  <div id="controls">
-    <button class="size-btn" data-size="16">16 × 16</button>
-    <button class="size-btn" data-size="32">32 × 32</button>
-    <button class="size-btn" data-size="64">64 × 64</button>
-    <button class="size-btn" data-size="128">128 × 128</button>
-    <button class="size-btn" data-size="256">256 × 256</button>
-  </div>
-  <canvas id="canvas" width="64" height="64"></canvas>
-  <p id="report">Pick a size to run a recursive fill from the top-left corner.</p>
+  <h3>Pixel Art Editor</h3>
+  <div id="state-display"></div>
+  <div id="cells-display"></div>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -57,102 +50,42 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.size-btn {
-  background: #2a2a44;
-  color: #e0e0e0;
-  border: 1px solid #3a3a5c;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 13px;
-  cursor: pointer;
+#state-display {
+  background: #161628;
+  border: 1px solid #2a2a44;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
 }
-.size-btn:hover { border-color: #8b8bcc; }
-#canvas {
-  width: 320px;
-  height: 320px;
-  image-rendering: pixelated;
-  border: 2px solid #3a3a5c;
-}
-#report {
+#cells-display {
   color: #8888aa;
   font-size: 13px;
-  text-align: center;
-  white-space: pre-line;
-  min-height: 54px;
-  max-width: 620px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 14: Find the Recursion Limit
+		javascript: `// Pixel Art Editor — Lesson 14: Describe Things
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const reportEl = document.getElementById("report");
+// One object describes everything the editor needs to remember right now.
+const editorState = {
+  selectedColor: "#e94560",
+  tool: "pencil",
+  gridSize: 16
+};
 
-// A recursive fill, exactly like the bucket from the previous lesson.
-function fillRecursive(buffer, width, height, x, y, target, replacement, state) {
-  if (x < 0 || x >= width || y < 0 || y >= height) return;
+const stateDisplay = document.getElementById("state-display");
+const cellsDisplay = document.getElementById("cells-display");
 
-  const index = y * width + x;
-  if (buffer[index] !== target || target === replacement) return;
-
-  buffer[index] = replacement;
-  state.depth++;
-  if (state.depth > state.maxDepth) state.maxDepth = state.depth;
-
-  fillRecursive(buffer, width, height, x + 1, y, target, replacement, state);
-  fillRecursive(buffer, width, height, x - 1, y, target, replacement, state);
-  fillRecursive(buffer, width, height, x, y + 1, target, replacement, state);
-  fillRecursive(buffer, width, height, x, y - 1, target, replacement, state);
-
-  state.depth--;
+function describe(state) {
+  return "Tool: " + state.tool +
+    " · Color: " + state.selectedColor +
+    " · Grid: " + state.gridSize + "×" + state.gridSize;
 }
 
-function renderBuffer(buffer, size) {
-  canvas.width = size;
-  canvas.height = size;
+stateDisplay.textContent = describe(editorState);
 
-  const image = ctx.createImageData(size, size);
-  for (let i = 0; i < buffer.length; i++) {
-    const color = buffer[i] === 0 ? [26, 26, 46] : [233, 69, 96];
-    const o = i * 4;
-    image.data[o] = color[0];
-    image.data[o + 1] = color[1];
-    image.data[o + 2] = color[2];
-    image.data[o + 3] = 255;
-  }
-  ctx.putImageData(image, 0, 0);
-}
+// Dot notation and bracket notation reach the same value
+const cells = editorState.gridSize * editorState["gridSize"];
+cellsDisplay.textContent = "Grid holds " + cells + " cells";
 
-function run(size) {
-  const buffer = new Uint8Array(size * size);
-  const state = { depth: 0, maxDepth: 0 };
-  const start = performance.now();
-  let outcome = "completed";
-  let filled = 0;
-
-  try {
-    fillRecursive(buffer, size, size, 0, 0, 0, 1, state);
-  } catch (error) {
-    outcome = error.constructor.name + ": " + error.message;
-  }
-
-  const ms = performance.now() - start;
-  for (let i = 0; i < buffer.length; i++) if (buffer[i] === 1) filled++;
-
-  renderBuffer(buffer, size);
-
-  reportEl.textContent =
-    size + "×" + size + " (" + (size * size).toLocaleString() + " cells)\\n" +
-    "filled: " + filled.toLocaleString() + " · max depth: " + state.maxDepth.toLocaleString() + "\\n" +
-    outcome + " · " + ms.toFixed(1) + " ms";
-
-  console.log(size + "x" + size, "->", outcome, "| max depth", state.maxDepth);
-}
-
-document.querySelectorAll(".size-btn").forEach((btn) => {
-  btn.addEventListener("click", () => run(Number(btn.dataset.size)));
-});
-
-run(16);`
+console.log("Editor state:", editorState);
+console.log("Bracket access:", editorState["tool"]);`
 	}
 };

@@ -1,40 +1,30 @@
-// Pixel Art Editor — Lesson 23: Contracts Without TypeScript
+// Pixel Art Editor — Lesson 15: Queue It
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 23,
-	title: 'Contracts Without TypeScript',
-	description: `We know the failures now, so let's try to catch them **without** changing languages. JavaScript already gives us a few tools:
+	title: 'Queue It',
+	description: `The recursive fill taught us where the limit comes from: the pending work is stored in the **call stack**. If we want a fill that scales, we have to store the pending work somewhere we control — on the heap, in a data structure.
 
-- **conventions** — "a node always has an id, an x and a y"
-- **runtime validations** — check the value before using it and throw a clear error
-- **comments and JSDoc** — document what a function expects, so the editor can show it
+A **queue** is the natural fit: when we visit a pixel we push its neighbours at the end, and we always take the next pixel from the front. First in, first out:
 
 \`\`\`
-/**
- * @param {{ id: string, x: number, y: number, label: string }} node
- */
-function moveNode(node, x, y) { … }
+queue: [ start ]
+  take from the front → paint → push its 4 neighbours
+  take from the front → paint → push its 4 neighbours
+  …
+until the queue is empty
 \`\`\`
 
-This genuinely works. But look at what it costs:
+That is **breadth-first search**: it fills outward in rings around the start point, and the traversal order is completely different from DFS — the *result* is the same region.
 
-\`\`\`
-function moveNode(node, x, y) {
-  assertNode(node);
-  assertNumber(x);
-  assertNumber(y);
-  // …now the actual three lines of logic
-}
-\`\`\`
-
-The contracts are maintained by hand, by us, everywhere, forever. Every new field means updating the validators, the JSDoc and the tests — and nothing forces a caller to read any of it. **TypeScript** — JavaScript with labels for your data, so mistakes are caught before the user sees them — is the next lesson's answer; here we do without it.`,
-	task: `1. Read the three contract tools: the JSDoc annotation, \`assertNumber\` and \`assertNode\`.
-2. Press **Run with contracts** — the same three mistakes from the previous lesson are now caught with a message that names the cause.
-3. Read the error messages: they point at the argument that was wrong.
-4. Count the lines: contracts vs actual logic.
-5. Now change the node shape (add \`label\` as required) and see how many places you have to update by hand.`,
-	concept: `**Manual contracts** — JSDoc plus runtime guards make expectations explicit and catch bad values early, at the price of writing and maintaining the checks yourself.`,
-	whyItMatters: `This is the best JavaScript can do without a compiler's help, and it already improves the situation. The remaining discomfort is the point: the checks are written by hand, the documentation can drift from the code, and the computer still cannot prove that every caller respects the contract. That is the question the next lesson answers.`,
+One detail matters for performance: \`Array.shift()\` removes from the front but re-indexes every remaining element, so it is O(n) per call. Instead we keep a **head index** and simply advance it.`,
+	task: `1. Switch to the bucket and fill a region — it now uses the queue, not recursion.
+2. Try filling a large empty area: no stack limit, because the work lives in the queue.
+3. Press **Benchmark** to compare \`Array.shift()\` with the head-index pattern.
+4. Read the two log lines in the console: DFS and BFS visit the same pixels in a different order.
+5. Flip the DFS/BFS toggle and fill the same region twice. Watch the order in which pixels change.`,
+	concept: `**BFS with a queue** — pending work stored in an explicit FIFO structure instead of the call stack, plus the head-index pattern to make "take from the front" O(1).`,
+	whyItMatters: `This is the general answer to last lesson's question: when the amount of pending work is not bounded, move it out of the call stack. The same idea shows up in pathfinding, scheduling, streaming and any producer/consumer pipeline — and knowing the cost of \`shift()\` keeps it fast.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -44,11 +34,17 @@ The contracts are maintained by hand, by us, everywhere, forever. Every new fiel
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Contracts without TypeScript</h3>
-  <div id="controls">
-    <button id="run-btn">Run with contracts</button>
+  <h3>Pixel Art Editor — BFS flood fill with a queue</h3>
+  <div id="toolbar">
+    <button id="btn-draw" class="tool-btn active">✏️ Draw</button>
+    <button id="btn-bucket">🪣 Bucket</button>
+    <button id="btn-undo">↩ Undo</button>
+    <label id="algo-toggle"><input type="checkbox" id="toggle-bfs" checked /> BFS</label>
+    <span id="status">Draw | Color: 1</span>
   </div>
-  <pre id="report">Press Run to send the same bad values, now through guards.</pre>
+  <div id="palette"></div>
+  <button id="bench-btn">Benchmark shift() vs head-index</button>
+  <canvas id="canvas" width="64" height="64"></canvas>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -64,97 +60,249 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#run-btn {
+#toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.tool-btn, #btn-undo, #bench-btn {
   background: #2a2a44;
-  color: #e0e0e0;
+  color: #c0c0d8;
   border: 1px solid #3a3a5c;
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 13px;
   cursor: pointer;
 }
-#run-btn:hover { border-color: #8b8bcc; }
-#report {
-  background: #111122;
-  border: 1px solid #2a2a44;
-  border-radius: 6px;
-  padding: 16px;
-  font-family: monospace;
-  font-size: 12px;
-  line-height: 1.8;
-  color: #b0b0c8;
-  white-space: pre;
-  min-width: 600px;
+.tool-btn.active { background: #8b8bcc; border-color: #8b8bcc; color: #161628; }
+#algo-toggle { color: #8888aa; font-size: 13px; display: flex; align-items: center; gap: 4px; }
+#status { color: #8888aa; font-size: 12px; }
+#palette { display: flex; gap: 6px; }
+.swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+.swatch.selected { border-color: #ffffff; }
+#canvas {
+  width: 512px;
+  height: 512px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid #3a3a5c;
+  cursor: crosshair;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 23: Contracts Without TypeScript
+		javascript: `// Pixel Art Editor — Lesson 23: Queue It
 
-const reportEl = document.getElementById("report");
+const WIDTH = 64;
+const HEIGHT = 64;
 
-// ── The contract, written by hand ──
-function assertNumber(value, name) {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    throw new TypeError(name + " must be a number, received " + JSON.stringify(value));
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+
+const PALETTE = [
+  "#1a1a2e", "#e94560", "#48dbfb", "#ffd166", "#2ecc71", "#8338ec"
+];
+
+const pixels = new Uint8Array(WIDTH * HEIGHT);
+const indexOf = (x, y) => y * WIDTH + x;
+
+let selectedColor = 1;
+let currentTool = "draw";
+let useBFS = true;
+const history = [];
+
+function render() {
+  const image = ctx.createImageData(WIDTH, HEIGHT);
+  const data = image.data;
+  for (let i = 0; i < pixels.length; i++) {
+    const hex = PALETTE[pixels[i]] || PALETTE[0];
+    const o = i * 4;
+    data[o] = parseInt(hex.slice(1, 3), 16);
+    data[o + 1] = parseInt(hex.slice(3, 5), 16);
+    data[o + 2] = parseInt(hex.slice(5, 7), 16);
+    data[o + 3] = 255;
   }
+  ctx.putImageData(image, 0, 0);
 }
 
-function assertNode(value, name) {
-  if (value === null || typeof value !== "object") {
-    throw new TypeError(name + " must be an object");
-  }
-  if (typeof value.id !== "string") {
-    throw new TypeError(name + ".id must be a string");
-  }
-  assertNumber(value.x, name + ".x");
-  assertNumber(value.y, name + ".y");
+function updateStatus() {
+  statusEl.textContent =
+    (currentTool === "draw" ? "Draw" : "Bucket/" + (useBFS ? "BFS" : "DFS")) +
+    " | Color: " + selectedColor + " | History: " + history.length;
 }
 
-function validateNode(value, name) {
-  if (typeof value.label !== "string") {
-    throw new TypeError(name + ".label must be a string");
+// ── Toolbar ──
+const btnDraw = document.getElementById("btn-draw");
+const btnBucket = document.getElementById("btn-bucket");
+
+btnDraw.addEventListener("click", () => {
+  currentTool = "draw";
+  btnDraw.classList.add("active");
+  btnBucket.classList.remove("active");
+  updateStatus();
+});
+btnBucket.addEventListener("click", () => {
+  currentTool = "bucket";
+  btnBucket.classList.add("active");
+  btnDraw.classList.remove("active");
+  updateStatus();
+});
+document.getElementById("toggle-bfs").addEventListener("change", (event) => {
+  useBFS = event.target.checked;
+  updateStatus();
+});
+
+// ── Palette ──
+const paletteEl = document.getElementById("palette");
+PALETTE.forEach((hex, index) => {
+  const swatch = document.createElement("div");
+  swatch.className = "swatch" + (index === selectedColor ? " selected" : "");
+  swatch.style.background = hex;
+  swatch.addEventListener("click", () => {
+    document.querySelectorAll(".swatch").forEach((s) => s.classList.remove("selected"));
+    swatch.classList.add("selected");
+    selectedColor = index;
+    updateStatus();
+  });
+  paletteEl.appendChild(swatch);
+});
+
+// ── DFS with an explicit stack (from the previous lesson) ──
+function floodFillDFS(startX, startY, replacement) {
+  const start = indexOf(startX, startY);
+  const target = pixels[start];
+  if (target === replacement) return 0;
+
+  const stack = [start];
+  const seen = new Uint8Array(WIDTH * HEIGHT);
+  seen[start] = 1;
+  let count = 0;
+
+  while (stack.length > 0) {
+    const index = stack.pop();
+    if (pixels[index] !== target) continue;
+    pixels[index] = replacement;
+    count++;
+
+    const x = index % WIDTH;
+    const y = (index - x) / WIDTH;
+    if (x > 0 && !seen[index - 1]) { seen[index - 1] = 1; stack.push(index - 1); }
+    if (x < WIDTH - 1 && !seen[index + 1]) { seen[index + 1] = 1; stack.push(index + 1); }
+    if (y > 0 && !seen[index - WIDTH]) { seen[index - WIDTH] = 1; stack.push(index - WIDTH); }
+    if (y < HEIGHT - 1 && !seen[index + WIDTH]) { seen[index + WIDTH] = 1; stack.push(index + WIDTH); }
   }
+
+  return count;
 }
 
-/**
- * @param {{ id: string, x: number, y: number, label: string }} node
- * @param {number} x
- * @param {number} y
- */
-function moveNode(node, x, y) {
-  assertNode(node, "node");
-  assertNumber(x, "x");
-  assertNumber(y, "y");
+// ── BFS with a queue and a head index ──
+function floodFillBFS(startX, startY, replacement) {
+  const start = indexOf(startX, startY);
+  const target = pixels[start];
+  if (target === replacement) return 0;
 
-  node.x = x;
-  node.y = y;
-  return node;
-}
+  const queue = [start];
+  let head = 0;                       // ← nothing is ever removed from the array
+  const seen = new Uint8Array(WIDTH * HEIGHT);
+  seen[start] = 1;
+  let count = 0;
 
-function guard(label, fn) {
-  try {
-    fn();
-    return label + "\\n  ok";
-  } catch (error) {
-    return label + "\\n  " + error.name + ": " + error.message;
+  while (head < queue.length) {
+    const index = queue[head++];
+    if (pixels[index] !== target) continue;
+    pixels[index] = replacement;
+    count++;
+
+    const x = index % WIDTH;
+    const y = (index - x) / WIDTH;
+    if (x > 0 && !seen[index - 1]) { seen[index - 1] = 1; queue.push(index - 1); }
+    if (x < WIDTH - 1 && !seen[index + 1]) { seen[index + 1] = 1; queue.push(index + 1); }
+    if (y > 0 && !seen[index - WIDTH]) { seen[index - WIDTH] = 1; queue.push(index - WIDTH); }
+    if (y < HEIGHT - 1 && !seen[index + WIDTH]) { seen[index + WIDTH] = 1; queue.push(index + WIDTH); }
   }
+
+  return count;
 }
 
-document.getElementById("run-btn").addEventListener("click", () => {
-  const node = { id: "a1", x: 100, y: 200, label: "Start" };
-  const rows = [];
+// ── Undo ──
+document.getElementById("btn-undo").addEventListener("click", () => {
+  const previous = history.pop();
+  if (!previous) return;
+  pixels.set(previous);
+  render();
+  updateStatus();
+});
 
-  rows.push(guard("moveNode(node, \\"100\\", 200)", () => moveNode(node, "100", 200)));
-  rows.push(guard("moveNode({ id: \\"b2\\", x: 10 }, 10, 50)", () =>
-    moveNode({ id: "b2", x: 10 }, 10, 50)
-  ));
-  rows.push(guard("validateNode({ id: \\"c3\\", x: 1, y: 2 })", () =>
-    validateNode({ id: "c3", x: 1, y: 2 }, "node")
-  ));
-  rows.push(guard("moveNode(node, 120, 240)  // valid", () => moveNode(node, 120, 240)));
+// ── Input ──
+let isDrawing = false;
 
-  reportEl.textContent = rows.join("\\n\\n") +
-    "\\n\\ncontract code: 18 lines\\nlogic in moveNode: 3 lines";
+function screenToGrid(event) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: Math.floor(((event.clientX - rect.left) / rect.width) * WIDTH),
+    y: Math.floor(((event.clientY - rect.top) / rect.height) * HEIGHT)
+  };
+}
 
-  console.log("node after the valid call:", node);
-});`
+canvas.addEventListener("pointerdown", (event) => {
+  const { x, y } = screenToGrid(event);
+  if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
+
+  history.push(pixels.slice());
+
+  if (currentTool === "bucket") {
+    const visited = useBFS
+      ? floodFillBFS(x, y, selectedColor)
+      : floodFillDFS(x, y, selectedColor);
+    render();
+    updateStatus();
+    console.log((useBFS ? "BFS" : "DFS") + " fill visited", visited, "pixels");
+  } else {
+    isDrawing = true;
+    canvas.setPointerCapture(event.pointerId);
+    pixels[indexOf(x, y)] = selectedColor;
+    render();
+  }
+});
+
+canvas.addEventListener("pointermove", (event) => {
+  if (!isDrawing) return;
+  const { x, y } = screenToGrid(event);
+  if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
+  pixels[indexOf(x, y)] = selectedColor;
+  render();
+});
+
+canvas.addEventListener("pointerup", () => { isDrawing = false; });
+canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+
+// ── Why a head index? ──
+document.getElementById("bench-btn").addEventListener("click", () => {
+  const N = 50000;
+  let sink = 0;
+
+  const q1 = [];
+  for (let i = 0; i < N; i++) q1.push(i);
+  let start = performance.now();
+  while (q1.length > 0) sink += q1.shift();
+  const shiftMs = performance.now() - start;
+
+  const q2 = [];
+  for (let i = 0; i < N; i++) q2.push(i);
+  let head = 0;
+  start = performance.now();
+  while (head < q2.length) sink += q2[head++];
+  const headMs = performance.now() - start;
+
+  const speedup = headMs > 0 ? Math.round(shiftMs / headMs) + "×" : "more than 1000×";
+  console.log(
+    "Queue benchmark (" + N.toLocaleString() + " dequeues, checksum " + sink + ")\\n" +
+    "shift(): " + shiftMs.toFixed(2) + " ms · head-index: " + headMs.toFixed(4) + " ms · " + speedup
+  );
+});
+
+render();
+updateStatus();
+console.log("BFS + DFS flood fill ready");`
 	}
 };

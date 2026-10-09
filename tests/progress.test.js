@@ -11,7 +11,8 @@ import {
 	migrateToCurrent,
 	shiftLessonId,
 	shiftProgressToV3,
-	shiftProgressToV4
+	shiftProgressToV4,
+	shiftProgressToV6
 } from '../src/lib/stores/progressMigrations.js';
 
 test('lessons before the diagram module keep their id', () => {
@@ -21,7 +22,7 @@ test('lessons before the diagram module keep their id', () => {
 });
 
 test('diagram lessons move by the module shift', () => {
-	assert.equal(STORAGE_VERSION, 5);
+	assert.equal(STORAGE_VERSION, 6);
 	assert.equal(shiftLessonId(26), 26 + MODULE_SHIFT_BY);
 	assert.equal(shiftLessonId(31), 31 + MODULE_SHIFT_BY);
 });
@@ -70,9 +71,9 @@ test('a legacy payload chains through both migrations', () => {
 	assert.deepEqual(v2.editorContents, { 11: 'code' });
 
 	const current = migrateToCurrent(v2);
-	assert.equal(current.currentLesson, 13);
-	assert.deepEqual(current.completedLessons, [10]);
-	assert.deepEqual(current.editorContents, { 11: 'code' });
+	assert.equal(current.currentLesson, 21);
+	assert.deepEqual(current.completedLessons, [18]);
+	assert.deepEqual(current.editorContents, { 19: 'code' });
 });
 
 test('empty payloads fall back to sensible defaults', () => {
@@ -81,4 +82,16 @@ test('empty payloads fall back to sensible defaults', () => {
 		completedLessons: [],
 		editorContents: {}
 	});
+});
+
+test('v5 progress moves with the inserted introductory lessons', () => {
+	const shifted = shiftProgressToV6({
+		currentLesson: 18,
+		completedLessons: [1, 8, 18],
+		editorContents: { 1: 'first', 18: 'last' }
+	});
+
+	assert.equal(shifted.currentLesson, 26);
+	assert.deepEqual(shifted.completedLessons, [9, 16, 26]);
+	assert.deepEqual(shifted.editorContents, { 9: 'first', 26: 'last' });
 });

@@ -1,25 +1,24 @@
-// Pixel Art Editor — Lesson 18: Project Close: Definition of Done
+// Pixel Art Editor — Lesson 10: The Rescue (Canvas)
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 18,
-	title: 'Project Close: Definition of Done',
-	description: `Every project in this course ends with the same question, asked at different levels of rigour: **can you show that this is finished?**
+	title: 'The Rescue (Canvas)',
+	description: `We measured the DOM grid and we know its cost: 16,384 elements, seconds of layout, a page that stops responding. Now we rescue the editor with a second way to render the same thing: **Canvas**.
 
-Right now you have no tooling. No npm scripts, no linter, no test runner — everything has to be verified by hand, in the browser. So the checklist for this module is small and honest:
+With Canvas the browser gives us a bitmap and a drawing API. Nothing in the page represents a pixel any more — we ask for rectangles and the browser paints them:
 
 \`\`\`
-1. Clean console       no uncaught errors while the editor runs
-2. Pure logic by hand  the index math and the structures, checked with your own assertions
-3. Resource audit      timers and listeners are released
+Pixel Data  →  Canvas  →  Visual Output
 \`\`\`
 
-That is deliberately all of it. There is no CI, no automated lint, no report: the evidence is what you can run and read yourself in this page. The checklist is not weaker for that — it is the honest version of "done" for the tools you have.`,
-	task: `1. Press **Run the checklist** and read the three items.
-2. Press **Break it**: it throws an intentional error and leaves a timer nobody releases.
-3. Watch the checklist go red — and watch the console fill up. That first item is doing its job.
-4. Reload the page to fix it, and confirm the three items are green again.`,
-	concept: `**A Definition of Done proportional to your tools** — the checklist is evidence, not ceremony. When there is no tooling, the evidence is manual, and that is still evidence.`,
-	whyItMatters: `It is tempting to skip verification when nothing automates it. This lesson makes the manual version explicit and makes the gap visible: everything here is checked by hand, by you, in the browser, and only while you remember to look. This concludes Module 1.`,
+The interesting part is not the new API. It is the comparison: same grid, two representations, and the frame rate we get back.`,
+	task: `1. Press a size button and watch the Canvas version draw the checkerboard.
+2. Press **Compare DOM vs Canvas** — it builds the same grid both ways and times each one.
+3. Compare the numbers and, more importantly, the element counts: 1 element against 16,384.
+4. Open DevTools → Performance, record while you draw on the Canvas, and confirm you are back at **60 FPS**.
+5. Change \`LIGHT\` and \`DARK\` to your own colors and run again.`,
+	concept: `**Rendering is a choice.** The DOM describes structure and lets the browser render it; Canvas describes pixels directly. The same data can be shown by either one.`,
+	whyItMatters: `The DOM version is not "wrong" — it is the right representation for a page of text or a list. But our data is a grid of pixels, and that access pattern is what Canvas was built for. Choosing a representation is an engineering decision, and now you can measure it.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -29,12 +28,15 @@ That is deliberately all of it. There is no CI, no automated lint, no report: th
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Pixel Art Editor — Definition of Done (manually verified)</h3>
-  <div id="toolbar">
-    <button id="run-btn">Run the checklist</button>
-    <button id="break-btn">Break it</button>
+  <h3>Pixel Art Editor — the same grid, two representations</h3>
+  <div id="controls">
+    <button class="size-btn" data-size="32">32 × 32</button>
+    <button class="size-btn" data-size="64">64 × 64</button>
+    <button id="compare-btn">Compare DOM vs Canvas</button>
   </div>
-  <pre id="report">Run the checklist to see the three items.</pre>
+  <p id="report">Canvas draws the whole grid with a single element.</p>
+  <canvas id="canvas" width="32" height="32"></canvas>
+  <div id="dom-grid"></div>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -50,8 +52,8 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#toolbar { display: flex; gap: 8px; }
-#run-btn, #break-btn {
+#controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.size-btn, #compare-btn {
   background: #2a2a44;
   color: #e0e0e0;
   border: 1px solid #3a3a5c;
@@ -60,131 +62,101 @@ h3 { font-size: 14px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#run-btn:hover { border-color: #2ecc71; }
-#break-btn:hover { border-color: #e94560; }
+.size-btn:hover, #compare-btn:hover { border-color: #8b8bcc; }
 #report {
-  background: #111122;
-  border: 1px solid #2a2a44;
-  border-radius: 6px;
-  padding: 16px;
-  font-family: monospace;
-  font-size: 12.5px;
-  line-height: 1.8;
-  color: #b0b0c8;
-  white-space: pre-wrap;
-  width: 640px;
-  max-width: 100%;
-  min-height: 260px;
-}`,
-		javascript: `// Pixel Art Editor — Lesson 18: Project Close: Definition of Done
+  color: #8888aa;
+  font-size: 13px;
+  text-align: center;
+  min-height: 36px;
+  max-width: 620px;
+}
+#canvas {
+  width: 512px;
+  height: 512px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid #3a3a5c;
+}
+#dom-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--size, 32), 1fr);
+  width: 512px;
+  height: 512px;
+}
+.cell.light { background: #2a2a3e; }
+.cell.dark { background: #1a1a2e; }`,
+		javascript: `// Pixel Art Editor — Lesson 18: The Rescue (Canvas)
 
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const domGrid = document.getElementById("dom-grid");
 const reportEl = document.getElementById("report");
 
-// ── Item 1: a clean console ──
-// Nothing automates this yet, so we count uncaught errors ourselves.
-let uncaught = 0;
-window.addEventListener("error", () => { uncaught++; });
-window.addEventListener("unhandledrejection", () => { uncaught++; });
+const LIGHT = "#2a2a3e";
+const DARK = "#1a1a2e";
+let size = 32;
 
-function checkConsole() {
-  return {
-    ok: uncaught === 0,
-    detail: uncaught === 0 ? "no uncaught errors" : uncaught + " uncaught error(s)"
-  };
-}
+// ── Canvas: one element, pixel by pixel ──
+function renderCanvas(size) {
+  const start = performance.now();
 
-// ── Item 2: pure logic, checked by hand ──
-// The same assertions a test runner would execute — written manually.
-function checkPureLogic() {
-  let passed = 0;
-  let total = 0;
+  canvas.width = size;
+  canvas.height = size;
 
-  const expectEqual = (actual, expected) => {
-    total++;
-    if (JSON.stringify(actual) === JSON.stringify(expected)) passed++;
-  };
-
-  const indexOf = (x, y, width) => y * width + x;
-  expectEqual(indexOf(0, 0, 4), 0);
-  expectEqual(indexOf(3, 0, 4), 3);
-  expectEqual(indexOf(0, 1, 4), 4);
-
-  return { ok: passed === total, detail: passed + "/" + total + " assertions pass" };
-}
-
-// ── Item 3: the resource audit ──
-const live = { listeners: 0, timers: 0 };
-const baseline = JSON.stringify(live); // everything must come back to this
-
-function mountPanel() {
-  const controller = new AbortController();
-  window.addEventListener("resize", () => {}, { signal: controller.signal });
-  live.listeners++;
-  const timer = setTimeout(() => {}, 5000);
-  live.timers++;
-
-  return {
-    destroy() {
-      controller.abort();
-      clearTimeout(timer);
-      live.listeners--;
-      live.timers--;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? LIGHT : DARK;
+      ctx.fillRect(x, y, 1, 1);
     }
-  };
+  }
+
+  return performance.now() - start;
 }
 
-function checkResources() {
-  mountPanel().destroy();
-  const now = JSON.stringify(live);
+// ── DOM: one element per pixel ──
+function renderDom(size) {
+  const start = performance.now();
 
-  return {
-    ok: now === baseline,
-    detail: now === baseline ? "timers and listeners released" : "something leaked: " + now
-  };
+  domGrid.innerHTML = "";
+  domGrid.style.setProperty("--size", size);
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const cell = document.createElement("div");
+      cell.className = (x + y) % 2 === 0 ? "cell light" : "cell dark";
+      domGrid.appendChild(cell);
+    }
+  }
+
+  return performance.now() - start;
 }
 
-// ── The checklist ──
-function runChecklist() {
-  const results = [
-    { label: "Clean console", ...checkConsole() },
-    { label: "Pure logic by hand", ...checkPureLogic() },
-    { label: "Resource audit", ...checkResources() }
-  ];
-
-  const done = results.filter((result) => result.ok).length;
-  const lines = results.map(
-    (result) => (result.ok ? "✓ " : "✗ ") + result.label + " — " + result.detail
-  );
-
+function setSize(next) {
+  size = next;
+  const ms = renderCanvas(size);
+  domGrid.innerHTML = "";
   reportEl.textContent =
-    lines.join("\\n") + "\\n\\n" +
-    done + " of " + results.length + " checks pass — " +
-    (done === results.length ? "DONE" : "NOT DONE") +
-    "\\n\\nthe whole checklist is manual: no linter, no test runner,\\n" +
-    "no CI. Right now you are the automation.";
-
-  console.log("Definition of Done (manual):", done + "/" + results.length);
+    size + "×" + size + " on Canvas: " + (size * size).toLocaleString() +
+    " pixels in " + ms.toFixed(1) + " ms · 1 element";
+  console.log("Canvas", size + "x" + size, ms.toFixed(1) + "ms");
 }
 
-document.getElementById("run-btn").addEventListener("click", runChecklist);
-
-// Break it on purpose: an uncaught error and a timer nobody releases.
-document.getElementById("break-btn").addEventListener("click", () => {
-  setTimeout(() => {
-    throw new Error("Intentional: this is what a dirty console looks like");
-  }, 0);
-
-  live.timers++;
-  setTimeout(() => {}, 60000); // never cleaned up
-
-  reportEl.textContent =
-    "broke it: one uncaught error and one leaked timer.\\n" +
-    "Check the console, then run the checklist again.";
-
-  // The error is asynchronous, so inspect right after it has fired.
-  setTimeout(runChecklist, 60);
+document.querySelectorAll(".size-btn").forEach((btn) => {
+  btn.addEventListener("click", () => setSize(Number(btn.dataset.size)));
 });
 
-runChecklist();`
+document.getElementById("compare-btn").addEventListener("click", () => {
+  const canvasMs = renderCanvas(size);
+  const domMs = renderDom(size);
+  const cells = size * size;
+
+  reportEl.textContent =
+    size + "×" + size + " — Canvas: " + canvasMs.toFixed(1) + " ms (1 element)" +
+    " vs DOM: " + domMs.toFixed(1) + " ms (" + cells.toLocaleString() + " elements)";
+
+  console.log("Compare", size + "x" + size, "canvas", canvasMs.toFixed(1), "dom", domMs.toFixed(1));
+});
+
+setSize(32);`
 	}
 };

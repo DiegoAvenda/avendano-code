@@ -1,46 +1,24 @@
-// Pixel Art Editor — Lesson 20: The esbuild Bridge
+// Pixel Art Editor — Lesson 12: Typed Memory
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 20,
-	title: 'The esbuild Bridge',
-	description: `We felt the problem in the previous lesson. The browser loads every module with its own request, and it cannot start a module before its imports arrive:
+	title: 'Typed Memory',
+	description: `Our flat array works, but look at what it stores: a pixel value is a small number, and a grid of 32 × 32 is only 1,024 of them. A regular JavaScript array is a general-purpose container — it can hold anything, and it pays for that flexibility.
+
+The values we store are small and predictable: **0 to 255**. That is exactly what a byte can hold, and the platform gives us a container built for it:
 
 \`\`\`
-index.html → main.js → paint.js → buffer.js
-                    → render.js → palette.js
+const pixels = new Uint8Array(WIDTH * HEIGHT);
 \`\`\`
 
-Five files, five round trips. On a fast local server you do not notice; on a real network the **waterfall** is the first thing a user feels.
-
-There is a tool for exactly this. **esbuild** takes one entry point, follows the imports and writes a single file:
-
-\`\`\`
-npx esbuild src/main.js --bundle --outfile=dist/bundle.js --format=esm
-\`\`\`
-
-It is not magic — it does the three things you have already seen by hand: read the dependency graph, resolve the imports, emit the modules in dependency order. It just does them automatically, and fast. Ten lines of script replace the whole ceremony:
-
-\`\`\`js
-// build.mjs
-import { build } from 'esbuild';
-
-await build({
-  entryPoints: ['src/main.js'],
-  bundle: true,
-  format: 'esm',
-  minify: true,
-  outfile: 'dist/bundle.js'
-});
-\`\`\`
-
-This lesson is the bridge. You bundle the project with the tool, watch the requests drop, and then notice the part esbuild does **not** solve: you still have to run it after every change. That is the door the next lesson walks through.`,
-	task: `1. In your project: \`npm install --save-dev esbuild\` (or \`pnpm add -D esbuild\`).
-2. Create \`build.mjs\` with the ten-line script above, and add \`"build": "node build.mjs"\` to your \`package.json\` scripts.
-3. Run \`npm run build\` and look at the size of \`dist/bundle.js\`.
-4. Change \`index.html\` to load only that file, then open the **Network** tab: the requests drop from five to one.
-5. Press **Run esbuild** in this page to see the same transformation, and read the report: what did bundling *not* fix?`,
-	concept: `**Bundling** — walking the import graph from an entry point and emitting a single file. The graph is the same one from the previous lessons; what changes is who executes the walk: a tool you install, instead of code you write.`,
-	whyItMatters: `The waterfall is a deployment problem, not a code problem, and bundling is the standard answer. But a bundler you have to run by hand is another chore: edit, run, refresh, repeat. That missing piece — automation plus instant feedback — is exactly what the next lesson adds.`,
+The values are **palette indexes**, not colors. Index 0 might be the background, index 1 red, index 2 cyan… One byte per pixel, and the palette maps the byte to a real color.`,
+	task: `1. Compare \`arrayBuffer\` (a normal Array) with \`pixels\` (a Uint8Array).
+2. Look at how \`render()\` turns an index into a color through \`PALETTE\`.
+3. Press **Benchmark** to time the same write/read loop on both containers.
+4. Read the memory estimate in the report — the difference is bytes per value, not speed of one operation.
+5. Click the canvas to paint pixels and watch the buffer change.`,
+	concept: `**Typed arrays** — fixed-size containers with a known numeric type (\`Uint8Array\` = one unsigned byte per element), so memory is compact, linear and predictable.`,
+	whyItMatters: `\`Uint8Array\` is not here because it is "advanced". It is here because it is the right *representation* for the data we have: small, bounded, numeric values in a fixed grid. Values that fit naturally in 0–255 also match palette indexes perfectly.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -50,22 +28,13 @@ This lesson is the bridge. You bundle the project with the tool, watch the reque
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Pixel Art Editor — what esbuild does with the graph</h3>
-  <div id="toolbar">
-    <button id="before-btn">Show the waterfall</button>
-    <button id="bundle-btn">Run esbuild</button>
+  <h3>Pixel Art Editor — one byte per pixel</h3>
+  <div id="controls">
+    <button id="bench-btn">Benchmark</button>
+    <span id="selected">Color: 1</span>
   </div>
-  <div id="panels">
-    <section class="panel">
-      <h4>Source modules</h4>
-      <ul id="graph"></ul>
-    </section>
-    <section class="panel">
-      <h4>esbuild output</h4>
-      <pre id="bundle">Press Run esbuild.</pre>
-    </section>
-  </div>
-  <p id="report">Five modules, five requests. Press Run esbuild.</p>
+  <canvas id="canvas" width="32" height="32"></canvas>
+  <p id="report">Left-click to paint. Index 1 is red.</p>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -81,8 +50,9 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#toolbar { display: flex; gap: 8px; }
-#before-btn, #bundle-btn {
+#controls { display: flex; align-items: center; gap: 12px; }
+#selected { color: #8888aa; font-size: 13px; }
+#bench-btn {
   background: #2a2a44;
   color: #e0e0e0;
   border: 1px solid #3a3a5c;
@@ -91,120 +61,121 @@ h3 { font-size: 14px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#before-btn:hover, #bundle-btn:hover { border-color: #8b8bcc; }
-#panels {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  width: 720px;
-  max-width: 100%;
-}
-.panel {
-  background: #111122;
-  border: 1px solid #2a2a44;
-  border-radius: 8px;
-  padding: 12px;
-  min-height: 200px;
-}
-.panel h4 {
-  margin-bottom: 8px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #8888aa;
-}
-#graph { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-.module {
-  font-family: monospace;
-  font-size: 12px;
-  color: #b0b0c8;
-  border-left: 3px solid #3a3a5c;
-  padding-left: 8px;
-}
-#bundle {
-  font-family: monospace;
-  font-size: 12px;
-  line-height: 1.7;
-  color: #b0b0c8;
-  white-space: pre-wrap;
+#bench-btn:hover { border-color: #8b8bcc; }
+#canvas {
+  width: 512px;
+  height: 512px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid #3a3a5c;
+  cursor: crosshair;
 }
 #report {
   color: #8888aa;
   font-size: 13px;
   text-align: center;
   white-space: pre-line;
-  min-height: 56px;
-  max-width: 660px;
+  min-height: 40px;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 20: The esbuild Bridge
+		javascript: `// Pixel Art Editor — Lesson 20: Typed Memory
 
-const graphEl = document.getElementById("graph");
-const bundleEl = document.getElementById("bundle");
+const WIDTH = 32;
+const HEIGHT = 32;
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 const reportEl = document.getElementById("report");
 
-// The same modules from the previous lesson — already in dependency order,
-// which is the order esbuild emits them in. We do not resolve the graph here:
-// that is exactly the part the tool does for us.
-const MODULES = [
-  { file: "src/buffer.js", bytes: 190, imports: [] },
-  { file: "src/palette.js", bytes: 160, imports: [] },
-  { file: "src/paint.js", bytes: 310, imports: ["src/buffer.js"] },
-  { file: "src/render.js", bytes: 280, imports: ["src/palette.js"] },
-  { file: "src/main.js", bytes: 420, imports: ["src/paint.js", "src/render.js"] }
+// Index → color. Values in the buffer are palette indexes, not colors.
+const PALETTE = [
+  "#1a1a2e", // 0 background
+  "#e94560", // 1 red
+  "#48dbfb", // 2 cyan
+  "#ffd166", // 3 yellow
+  "#2ecc71"  // 4 green
 ];
 
-const COMMAND = "npx esbuild src/main.js --bundle --outfile=dist/bundle.js --format=esm --minify";
+// ── One byte per pixel ──
+const pixels = new Uint8Array(WIDTH * HEIGHT);
 
-function totalBytes() {
-  return MODULES.reduce((sum, module) => sum + module.bytes, 0);
-}
+// The same values in a general-purpose array, for comparison
+const arrayBuffer = new Array(WIDTH * HEIGHT).fill(0);
 
-// ── Before: one request per module ──
-function showWaterfall() {
-  graphEl.innerHTML = "";
+const indexOf = (x, y) => y * WIDTH + x;
 
-  for (const module of MODULES) {
-    const item = document.createElement("li");
-    item.className = "module";
-    item.textContent =
-      module.file +
-      (module.imports.length > 0 ? "  →  " + module.imports.join(", ") : "") +
-      "   (" + module.bytes + " B)";
-    graphEl.appendChild(item);
+let selected = 1;
+const selectedEl = document.getElementById("selected");
+
+function render() {
+  const image = ctx.createImageData(WIDTH, HEIGHT);
+  const data = image.data;
+
+  for (let i = 0; i < pixels.length; i++) {
+    const hex = PALETTE[pixels[i]] || PALETTE[0];
+    const o = i * 4;
+    data[o] = parseInt(hex.slice(1, 3), 16);
+    data[o + 1] = parseInt(hex.slice(3, 5), 16);
+    data[o + 2] = parseInt(hex.slice(5, 7), 16);
+    data[o + 3] = 255;
   }
 
-  reportEl.textContent =
-    MODULES.length + " modules · " + totalBytes() + " bytes of source\\n" +
-    "the browser needs one request per module";
-
-  console.log("source:", MODULES.length, "modules,", totalBytes(), "bytes");
+  ctx.putImageData(image, 0, 0);
 }
 
-// ── After: one file, produced by esbuild ──
-function runEsbuild() {
-  const sourceBytes = totalBytes();
-  const minifiedBytes = Math.round(sourceBytes * 0.62);
+// ── Painting ──
+let isDrawing = false;
 
-  bundleEl.textContent =
-    "$ " + COMMAND + "\\n\\n" +
-    "  dist/bundle.js   " + minifiedBytes + " B (minified)\\n\\n" +
-    MODULES.map((module, index) => "  // " + (index + 1) + ". " + module.file).join("\\n") +
-    "\\n\\n  → 1 file · 1 request";
-
-  reportEl.textContent =
-    "requests: " + MODULES.length + " → 1\\n" +
-    "bytes: " + sourceBytes + " → " + minifiedBytes + " (minified)\\n\\n" +
-    "what bundling does not fix: you still have to run it\\n" +
-    "after every change — that is the next lesson";
-
-  console.log("esbuild:", MODULES.length, "requests → 1,", sourceBytes, "→", minifiedBytes, "bytes");
-  console.log("run it yourself with:", COMMAND);
+function screenToGrid(event) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: Math.floor(((event.clientX - rect.left) / rect.width) * WIDTH),
+    y: Math.floor(((event.clientY - rect.top) / rect.height) * HEIGHT)
+  };
 }
 
-document.getElementById("before-btn").addEventListener("click", showWaterfall);
-document.getElementById("bundle-btn").addEventListener("click", runEsbuild);
+function paint(event) {
+  const { x, y } = screenToGrid(event);
+  if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
+  pixels[indexOf(x, y)] = selected;
+  render();
+}
 
-showWaterfall();
-console.log("esbuild bridge ready — bundle the project with the real tool");`
+canvas.addEventListener("pointerdown", (event) => {
+  isDrawing = true;
+  canvas.setPointerCapture(event.pointerId);
+  paint(event);
+});
+canvas.addEventListener("pointermove", (event) => { if (isDrawing) paint(event); });
+canvas.addEventListener("pointerup", () => { isDrawing = false; });
+canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+
+// ── The cost of flexibility ──
+document.getElementById("bench-btn").addEventListener("click", () => {
+  const ITERS = 500;
+
+  let start = performance.now();
+  for (let i = 0; i < ITERS; i++) {
+    for (let j = 0; j < pixels.length; j++) pixels[j] = (pixels[j] + 1) % 256;
+  }
+  const typedMs = performance.now() - start;
+
+  start = performance.now();
+  for (let i = 0; i < ITERS; i++) {
+    for (let j = 0; j < arrayBuffer.length; j++) arrayBuffer[j] = (arrayBuffer[j] + 1) % 256;
+  }
+  const arrayMs = performance.now() - start;
+
+  const bytes = pixels.length;
+  reportEl.textContent =
+    "Writes × " + ITERS + " on " + bytes.toLocaleString() + " values\\n" +
+    "Uint8Array : " + typedMs.toFixed(1) + " ms · " + bytes.toLocaleString() + " bytes\\n" +
+    "Array      : " + arrayMs.toFixed(1) + " ms · at least " + (bytes * 8).toLocaleString() + " bytes";
+
+  console.log("Uint8Array", typedMs.toFixed(1), "ms · Array", arrayMs.toFixed(1), "ms");
+});
+
+selectedEl.textContent = "Color: " + selected;
+render();
+console.log("Pixel buffer ready:", pixels.length, "bytes");`
 	}
 };
