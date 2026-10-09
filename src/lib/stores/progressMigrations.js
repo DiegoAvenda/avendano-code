@@ -13,7 +13,7 @@
  *                                    15 (Module 0) and after 33 (Module 1)
  */
 
-export const STORAGE_VERSION = 5;
+export const STORAGE_VERSION = 6;
 
 /** In v2 the diagram module started here. */
 export const MODULE_SHIFT_FROM = 26;
@@ -133,9 +133,18 @@ export function shiftProgressToV5(parsed) {
 }
 
 /**
+ * v5 → v6: eight programming-foundation lessons were inserted before the
+ * former Module 1 curriculum. Keep each learner on the lesson they had reached.
+ * @param {{ currentLesson?: number, completedLessons?: number[], editorContents?: Record<string, any> }} parsed
+ */
+export function shiftProgressToV6(parsed) {
+	return mapProgress(parsed, (id) => (id >= 1 && id <= 18 ? id + 8 : id));
+}
+
+/**
  * The full chain, for payloads older than the current version.
  * @param {{ currentLesson?: number, completedLessons?: number[], editorContents?: Record<string, any> }} parsed
  */
 export function migrateToCurrent(parsed) {
-	return shiftProgressToV5(shiftProgressToV4(shiftProgressToV3(parsed)));
+	return shiftProgressToV6(shiftProgressToV5(shiftProgressToV4(shiftProgressToV3(parsed))));
 }

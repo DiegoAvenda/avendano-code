@@ -203,7 +203,9 @@ Conventions:
 - the starter code ships the **function signature** to implement, the surrounding
   model, and a checker with fixed cases; the learner only writes the function body;
 - the checker grades the result and, when every case passes, reveals a card
-  (`#card`) that links the pattern to its optional LeetCode equivalent;
+  (`#card`) that names **two** LeetCode problems to solve next — the learner's first
+  contact with LeetCode — and the prose names and links both as well, so the suggestion
+  is visible before the checks pass;
 - the prose starts with **"Integrative challenge (boss fight)"**, which the test suite
   asserts, and the UI shows a `Integrative challenge` badge on the lesson plus a distinct
   progress dot.

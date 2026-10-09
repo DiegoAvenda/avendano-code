@@ -1,33 +1,50 @@
-// Pixel Art Editor — Lesson 24: Add Types
+// Pixel Art Editor — Lesson 16: The Border Inspector
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 24,
-	title: 'Add Types',
-	description: `We documented the shape of a node, and we wrote guards — by hand, everywhere. The open question from the previous lesson was: **can the computer check this for us before the program runs?**
+	title: 'The Border Inspector',
+	type: 'challenge',
+	description: `**Integrative challenge (boss fight).** You already built the two halves of this: a flat pixel buffer (\`Uint8Array\`, row-major) and a queue that walks a region without recursion. Now use them for something that is **not** filling.
 
-That is exactly what TypeScript does. It is a static type checker for JavaScript: you describe the shape once, and the tool checks every use of it without executing anything.
+The editor needs a "selection outline": when the user clicks a shape, we want the **outer border** of that shape, not its interior. The border of a region is made of the pixels that have at least one 4-directional neighbour *outside* the region — either a different colour, or past the edge of the canvas:
 
 \`\`\`
-interface Node {
-  id: string;
-  x: number;
-  y: number;
-  label: string;
-}
-
-function moveNode(node: Node, x: number, y: number): Node { … }
+0 0 0 0 0
+0 1 1 1 0     the eight 1s on the ring are the border
+0 1 1 1 0     the centre 1 has four neighbours inside → interior
+0 1 1 1 0
+0 0 0 0 0
 \`\`\`
 
-With that contract in place, the editor can mark \`node.lable\` **before you run the code**, and \`moveNode(node, "100", 200)\` is not a runtime mystery any more: it is an error pointing at the argument.
+**The 80/20:** 80% of the work is the structure you already have — the same BFS with a queue, the same \`index = y * width + x\` math. The 20% that is new is the boundary condition: pushing neighbours into the queue is not enough, you have to decide, for every pixel you visit, whether it touches the outside.
 
-The important part is the direction of the work: we did not start from the syntax. We started from a real failure, tried JavaScript's own tools, and only then added types.`,
-	task: `1. Press **Check, then run**. The checker runs *before* any code executes.
-2. Compare the output with the previous two lessons: same three mistakes, now reported as static errors with the property or argument named.
-3. Look at \`checkShape\` — it is a miniature version of what a type checker does with \`interface Node\`.
-4. Press **Skip the check** to see the program run anyway, with the failures we already know.
-5. Ask: which of the two runs would you rather debug?`,
-	concept: `**Static type checking** — describing the shape of values with annotations and interfaces so a tool can find type errors before the program runs, instead of discovering them later at runtime.`,
-	whyItMatters: `Types are not extra syntax you must memorise: they are the answer to a problem you have now experienced twice. And because they are checked statically, they can be verified in CI, in your editor and before a deploy — the failure never reaches the user.`,
+Implement this function in the editor:
+
+\`\`\`ts
+function getRegionBorder(
+  buffer: Uint8Array,
+  width: number,
+  height: number,
+  startX: number,
+  startY: number
+): number[]
+\`\`\`
+
+Return the **1D indices** of the border pixels. The colour of the region is whatever \`buffer[startY * width + startX]\` holds. The checks below run four cases, including one where the shape touches the canvas edge and one with a second shape that must be ignored.
+
+**Your first two LeetCode problems.** This is the moment the course sends you to LeetCode for the first time, and it sends you with a pattern you already wrote, not with a blank page. Solve them in this order:
+
+- [LC 733 — Flood Fill](https://leetcode.com/problems/flood-fill/) — the traversal you built in the previous lessons, wearing a different costume.
+- [LC 463 — Island Perimeter](https://leetcode.com/problems/island-perimeter/) — the boundary reasoning from this lesson.
+
+Both are rated *easy* on purpose: the first visit should be about recognising the pattern, not about fighting the site. The card that appears when the four checks pass links to both.`,
+	task: `1. Read \`getRegionBorder\` in the editor: the signature and the checks are provided, the body is yours.
+2. Walk the region from the start pixel using the queue from the previous lesson.
+3. For every pixel you visit, look at its four neighbours: if any of them is out of bounds or has a different colour, that pixel is part of the border.
+4. Press **Run the checks** as many times as you need — each case tells you what it expected.
+5. When all four cases pass, the closing card appears with the two LeetCode problems this pattern unlocks. Solve **LC 733 (Flood Fill)** first, then **LC 463 (Island Perimeter)**.`,
+	concept: `**BFS plus a boundary condition.** The traversal is the one you already know; the new reasoning is per-pixel: a pixel belongs to the border when at least one of its neighbours is outside the region — where "outside" includes the edge of the canvas.`,
+	whyItMatters: `This is the shape of a whole family of problems: flood fill asks "which pixels are connected?", but perimeter problems ask "which connected pixels touch the outside?" The same traversal, a different question, and the neighbour check is where the reasoning lives.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -37,12 +54,20 @@ The important part is the direction of the work: we did not start from the synta
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Add types — or at least check them</h3>
-  <div id="controls">
-    <button id="check-btn">Check, then run</button>
-    <button id="skip-btn">Skip the check</button>
+  <h3>Pixel Art Editor — the selection outline</h3>
+  <div id="toolbar">
+    <button id="run-btn">Run the checks</button>
   </div>
-  <pre id="report">Press a button to compare static checks with runtime failures.</pre>
+  <canvas id="canvas" width="16" height="16"></canvas>
+  <pre id="report">Implement getRegionBorder and press Run the checks.</pre>
+  <section id="card" hidden>
+    <h4>Challenge cleared — your first two LeetCode problems</h4>
+    <p>You just wrote the pattern behind both of these. Solve them in this order, outside this page:</p>
+    <ol>
+      <li><a href="https://leetcode.com/problems/flood-fill/" target="_blank" rel="noopener noreferrer">LC 733 — Flood Fill</a> — the traversal you already have.</li>
+      <li><a href="https://leetcode.com/problems/island-perimeter/" target="_blank" rel="noopener noreferrer">LC 463 — Island Perimeter</a> — the boundary reasoning from this lesson.</li>
+    </ol>
+  </section>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -58,8 +83,7 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#controls { display: flex; gap: 8px; }
-#check-btn, #skip-btn {
+#run-btn {
   background: #2a2a44;
   color: #e0e0e0;
   border: 1px solid #3a3a5c;
@@ -68,90 +92,196 @@ h3 { font-size: 14px; opacity: 0.7; }
   font-size: 13px;
   cursor: pointer;
 }
-#check-btn:hover, #skip-btn:hover { border-color: #8b8bcc; }
+#run-btn:hover { border-color: #8b8bcc; }
+#canvas {
+  width: 256px;
+  height: 256px;
+  image-rendering: pixelated;
+  border: 2px solid #3a3a5c;
+}
 #report {
   background: #111122;
   border: 1px solid #2a2a44;
   border-radius: 6px;
   padding: 16px;
   font-family: monospace;
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.8;
   color: #b0b0c8;
-  white-space: pre;
-  min-width: 620px;
+  white-space: pre-wrap;
+  width: 640px;
+  max-width: 100%;
+  min-height: 220px;
+}
+#card {
+  width: 640px;
+  max-width: 100%;
+  background: rgba(72, 219, 251, 0.08);
+  border: 1px solid #48dbfb;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+#card h4 {
+  margin-bottom: 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #48dbfb;
+}
+#card ol {
+  margin: 8px 0 0 20px;
+  line-height: 1.9;
+}
+#card a {
+  color: #48dbfb;
+  text-decoration: underline;
 }`,
-		javascript: `// Pixel Art Editor — Lesson 24: Add Types
+		javascript: `// Pixel Art Editor — Lesson 24: The Border Inspector
 
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 const reportEl = document.getElementById("report");
+const cardEl = document.getElementById("card");
 
-// A miniature type checker: the shape of "Node", described once.
-const NODE_SHAPE = {
-  id: "string",
-  x: "number",
-  y: "number",
-  label: "string"
-};
+const WIDTH = 16;
+const HEIGHT = 16;
+const COLORS = ["#1a1a2e", "#e94560", "#48dbfb"];
 
-function checkShape(value, shape, name) {
-  const errors = [];
+// ── Provided: a flat buffer with two shapes on it ──
+const buffer = new Uint8Array(WIDTH * HEIGHT);
+const indexOf = (x, y) => y * WIDTH + x;
 
-  for (const [key, expected] of Object.entries(shape)) {
-    const actual = typeof value[key];
-    if (actual !== expected) {
-      errors.push(name + "." + key + " should be " + expected + ", found " + actual);
+function fillRect(x0, y0, w, h, color) {
+  for (let y = y0; y < y0 + h; y++) {
+    for (let x = x0; x < x0 + w; x++) {
+      if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) buffer[indexOf(x, y)] = color;
     }
   }
-
-  for (const key of Object.keys(value)) {
-    if (!(key in shape)) {
-      errors.push(name + "." + key + " does not exist on type Node");
-    }
-  }
-
-  return errors;
 }
 
-// The program we already wrote twice — with one line that reads a typo.
-function program(node) {
+fillRect(2, 2, 8, 6, 1);   // the shape we will inspect
+fillRect(11, 10, 3, 3, 2); // a second shape that must be ignored
+
+function render(border = []) {
+  const image = ctx.createImageData(WIDTH, HEIGHT);
+  const isBorder = new Set(border);
+
+  for (let i = 0; i < buffer.length; i++) {
+    const hex = isBorder.has(i) ? "#ffd166" : COLORS[buffer[i]] || COLORS[0];
+    const o = i * 4;
+    image.data[o] = parseInt(hex.slice(1, 3), 16);
+    image.data[o + 1] = parseInt(hex.slice(3, 5), 16);
+    image.data[o + 2] = parseInt(hex.slice(5, 7), 16);
+    image.data[o + 3] = 255;
+  }
+
+  ctx.putImageData(image, 0, 0);
+}
+
+// ─────────────────────────────────────────────────────────────
+// YOUR CODE (the 20%): 80% of this is the BFS from Lesson 15.
+// ─────────────────────────────────────────────────────────────
+function getRegionBorder(buffer, width, height, startX, startY) {
+  // Your code here
+}
+
+// ── Provided: four cases with known answers ──
+function bufferFromRows(rows) {
+  const height = rows.length;
+  const width = rows[0].length;
+  const data = new Uint8Array(width * height);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) data[y * width + x] = Number(rows[y][x]);
+  }
+
+  return { data, width, height };
+}
+
+const CASES = [
+  {
+    name: "a single pixel has no interior",
+    rows: ["00000", "00000", "00100", "00000", "00000"],
+    start: [2, 2],
+    expected: [12]
+  },
+  {
+    name: "a shape touching the canvas edge is all border",
+    rows: ["11000", "11000", "11000", "00000", "00000"],
+    start: [0, 0],
+    expected: [0, 1, 5, 6, 10, 11]
+  },
+  {
+    name: "interior pixels are not border",
+    rows: ["00000", "01110", "01110", "01110", "00000"],
+    start: [2, 2],
+    expected: [6, 7, 8, 11, 13, 16, 17, 18]
+  },
+  {
+    name: "only the region of the start point is inspected",
+    rows: ["01100", "01100", "00000", "00022", "00022"],
+    start: [1, 0],
+    expected: [1, 2, 6, 7]
+  }
+];
+
+function sameIndices(actual, expected) {
+  if (!Array.isArray(actual)) return false;
+  const a = [...new Set(actual)].sort((x, y) => x - y);
+  const b = [...expected].sort((x, y) => x - y);
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+function runChecks() {
   const lines = [];
-  lines.push("connectNode → " + node.id.toUpperCase());
-  lines.push("label → " + node.lable);
-  lines.push("distance → " + (node.x + 50));
-  return lines;
+
+  for (const testCase of CASES) {
+    const { data, width, height } = bufferFromRows(testCase.rows);
+    let actual;
+    let error = null;
+
+    try {
+      actual = getRegionBorder(data, width, height, testCase.start[0], testCase.start[1]);
+    } catch (thrown) {
+      error = thrown.message;
+    }
+
+    const ok = !error && sameIndices(actual, testCase.expected);
+    lines.push(
+      (ok ? "✓ " : "✗ ") + testCase.name +
+        (ok
+          ? " — " + testCase.expected.length + " border pixels"
+          : "\\n    expected [" + testCase.expected.join(", ") + "]" +
+            (error ? "\\n    error: " + error : "\\n    received " + JSON.stringify(actual)))
+    );
+  }
+
+  const failed = lines.filter((line) => line.startsWith("✗")).length;
+  const passed = CASES.length - failed;
+
+  reportEl.textContent =
+    lines.join("\\n") + "\\n\\n" + passed + " of " + CASES.length + " cases pass" +
+    (failed === 0 ? " — challenge cleared" : "");
+
+  // Visual feedback on the demo shape.
+  let border = [];
+  try {
+    border = getRegionBorder(buffer, WIDTH, HEIGHT, 3, 3) || [];
+  } catch {
+    border = [];
+  }
+  render(Array.isArray(border) ? border : []);
+
+  cardEl.hidden = failed !== 0;
+  console.log("border challenge:", passed + "/" + CASES.length, "cases");
 }
 
-const goodNode = { id: "a1", x: 100, y: 200, label: "Start" };
-const badNode = { id: "b2", x: "100", y: 200, lable: "Start" };
+document.getElementById("run-btn").addEventListener("click", runChecks);
 
-document.getElementById("check-btn").addEventListener("click", () => {
-  const errors = [
-    ...checkShape(badNode, NODE_SHAPE, "node"),
-    "node.lable does not exist on type Node"
-  ];
-
-  reportEl.textContent =
-    "1. static check (nothing has run yet)\\n\\n" +
-    errors.map((error) => "  ✗ " + error).join("\\n") +
-    "\\n\\n2. result\\n" +
-    "  compile failed — the bad program was never executed.";
-
-  console.log("Static errors:", errors);
-});
-
-document.getElementById("skip-btn").addEventListener("click", () => {
-  const output = program(badNode);
-
-  reportEl.textContent =
-    "1. static check skipped\\n\\n" +
-    "2. runtime\\n" +
-    output.map((line) => "  " + line).join("\\n") +
-    "\\n\\n  undefined, \\"10050\\" and a typo —\\n" +
-    "  exactly the failures from the previous lessons.";
-
-  console.log("Runtime output:", output);
-});
-
-console.log("Checker ready for", Object.keys(NODE_SHAPE).join(", "));`
+render([]);
+runChecks();
+console.log("Implement getRegionBorder and press Run the checks");`
 	}
 };

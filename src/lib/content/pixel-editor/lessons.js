@@ -6,8 +6,7 @@
  * challenge lesson (`type: 'challenge'`): 80% of the structure the learner just
  * built, 20% of new reasoning.
  *
- *   Module 0 — Foundations Lab        · Pixel Art Editor        (lessons 1–30)
- *   Module 1 — Flowchart & Diagram    · Diagram Builder         (lessons 31–39)
+ *   Module 1 — JavaScript             · Pixel Art Editor        (lessons 1–26)
  *
  * This module ships only lesson *metadata* (id + title + optional type) plus the
  * module and phase tables. The prose and starter code for each lesson live in
@@ -22,11 +21,11 @@ export const modules = [
 		project: 'Pixel Art Editor',
 		stack: ['JavaScript', 'DOM', 'Canvas 2D', 'Uint8Array'],
 		pitch:
-			'Build a drawing app pixel by pixel, starting from zero. You begin with the visible pieces of a web page, watch the app freeze when it grows, and then learn what real applications do instead: keep the data efficient and repaint only what changed. It closes with undo history and an outline-detection challenge.',
+			'Build a drawing app pixel by pixel, starting with your first program. Learn to run code, inspect values, make decisions and respond to a click before the editor grows into a Canvas application with real data structures.',
 		description:
 			'Build the pixel editor in the DOM first, collapse it on purpose at 16,384 elements, rescue it with Canvas, and then add the data structures that make it scale: flat arrays, typed memory (Uint8Array), DFS, a BFS queue and a ring buffer for history.',
 		from: 1,
-		to: 18
+		to: 26
 	}
 ];
 
@@ -35,9 +34,11 @@ export const modules = [
  * lessons only requires editing this table.
  */
 export const phases = [
-	{ id: 1, label: 'Phase 1: Visual JavaScript with the DOM', from: 1, to: 10 },
-	{ id: 2, label: 'Phase 2: Visual Data Structures and Algorithms', from: 11, to: 17 },
-	{ id: 3, label: 'Phase 3: Closing', from: 18, to: 18 }
+	{ id: 1, label: 'Phase 1: Programming Foundations', from: 1, to: 8 },
+	{ id: 2, label: 'Phase 2: Build an Interactive Editor', from: 9, to: 16 },
+	{ id: 3, label: 'Phase 3: Representation and Performance', from: 17, to: 20 },
+	{ id: 4, label: 'Phase 4: Data Structures and Algorithms', from: 21, to: 25 },
+	{ id: 5, label: 'Phase 5: Closing', from: 26, to: 26 }
 ];
 
 /**
@@ -62,25 +63,32 @@ export function getModule(lessonId) {
  * `type: 'challenge'` marks the boss fight that closes each module's main arc.
  */
 export const lessonList = [
-	// Module 1 — Pixel Art Editor
-	{ id: 1, title: 'Your First Pixel' },
-	{ id: 2, title: 'Give the Code a Job' },
-	{ id: 3, title: 'Make Decisions' },
-	{ id: 4, title: 'Repeat the Work' },
-	{ id: 5, title: 'Work With Collections' },
-	{ id: 6, title: 'Describe Things' },
-	{ id: 7, title: 'Talk to the Page' },
-	{ id: 8, title: 'Listen to the User' },
-	{ id: 9, title: 'The DOM Limit' },
-	{ id: 10, title: 'The Rescue (Canvas)' },
-	{ id: 11, title: 'Where Does a Pixel Live?' },
-	{ id: 12, title: 'Typed Memory' },
-	{ id: 13, title: 'Fill the Area' },
-	{ id: 14, title: 'Find the Recursion Limit' },
-	{ id: 15, title: 'Queue It' },
-	{ id: 16, title: 'The Border Inspector', type: 'challenge' },
-	{ id: 17, title: 'Bounded History' },
-	{ id: 18, title: 'Project Close: Definition of Done' }
+	{ id: 1, title: 'Run Your First Program' },
+	{ id: 2, title: 'Work With Values' },
+	{ id: 3, title: 'Name What Changes' },
+	{ id: 4, title: 'Update a Value' },
+	{ id: 5, title: 'Give Code a Job' },
+	{ id: 6, title: 'Ask a Question' },
+	{ id: 7, title: 'Choose What Happens' },
+	{ id: 8, title: 'Read Errors and Inspect Values' },
+	{ id: 9, title: 'Your First Pixel' },
+	{ id: 10, title: 'Give the Code a Job' },
+	{ id: 11, title: 'Make Decisions' },
+	{ id: 12, title: 'Repeat the Work' },
+	{ id: 13, title: 'Work With Collections' },
+	{ id: 14, title: 'Describe Things' },
+	{ id: 15, title: 'Talk to the Page' },
+	{ id: 16, title: 'Listen to the User' },
+	{ id: 17, title: 'The DOM Limit' },
+	{ id: 18, title: 'The Rescue (Canvas)' },
+	{ id: 19, title: 'Where Does a Pixel Live?' },
+	{ id: 20, title: 'Typed Memory' },
+	{ id: 21, title: 'Fill the Area' },
+	{ id: 22, title: 'Find the Recursion Limit' },
+	{ id: 23, title: 'Queue It' },
+	{ id: 24, title: 'The Border Inspector', type: 'challenge' },
+	{ id: 25, title: 'Bounded History' },
+	{ id: 26, title: 'Project Close: Interview Room' }
 ];
 
 /** @type {Record<number, () => Promise<{ default: any }>>} */
@@ -102,7 +110,15 @@ const loaders = {
 	15: () => import('./curriculum/lesson-15.js'),
 	16: () => import('./curriculum/lesson-16.js'),
 	17: () => import('./curriculum/lesson-17.js'),
-	18: () => import('./curriculum/lesson-18.js')
+	18: () => import('./curriculum/lesson-18.js'),
+	19: () => import('./curriculum/lesson-19.js'),
+	20: () => import('./curriculum/lesson-20.js'),
+	21: () => import('./curriculum/lesson-21.js'),
+	22: () => import('./curriculum/lesson-22.js'),
+	23: () => import('./curriculum/lesson-23.js'),
+	24: () => import('./curriculum/lesson-24.js'),
+	25: () => import('./curriculum/lesson-25.js'),
+	26: () => import('./curriculum/lesson-26.js')
 };
 
 /**

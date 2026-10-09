@@ -1,24 +1,20 @@
-// Pixel Art Editor — Lesson 10: The Rescue (Canvas)
+// Pixel Art Editor — Lesson 2: Give the Code a Job
 // Prose + starter code for a single lesson. Loaded on demand by ../lessons.js.
 export default {
 	id: 10,
-	title: 'The Rescue (Canvas)',
-	description: `We measured the DOM grid and we know its cost: 16,384 elements, seconds of layout, a page that stops responding. Now we rescue the editor with a second way to render the same thing: **Canvas**.
+	title: 'Give the Code a Job',
+	description: `We will need to perform the same operation many times in our editor. Instead of writing the same code repeatedly, we can give that operation a name using a **function**.
 
-With Canvas the browser gives us a bitmap and a drawing API. Nothing in the page represents a pixel any more — we ask for rectangles and the browser paints them:
+A function is a reusable block of code that can take inputs (called **parameters**) and return a result. We can call the function whenever we need that operation.
 
-\`\`\`
-Pixel Data  →  Canvas  →  Visual Output
-\`\`\`
-
-The interesting part is not the new API. It is the comparison: same grid, two representations, and the frame rate we get back.`,
-	task: `1. Press a size button and watch the Canvas version draw the checkerboard.
-2. Press **Compare DOM vs Canvas** — it builds the same grid both ways and times each one.
-3. Compare the numbers and, more importantly, the element counts: 1 element against 16,384.
-4. Open DevTools → Performance, record while you draw on the Canvas, and confirm you are back at **60 FPS**.
-5. Change \`LIGHT\` and \`DARK\` to your own colors and run again.`,
-	concept: `**Rendering is a choice.** The DOM describes structure and lets the browser render it; Canvas describes pixels directly. The same data can be shown by either one.`,
-	whyItMatters: `The DOM version is not "wrong" — it is the right representation for a page of text or a list. But our data is a grid of pixels, and that access pattern is what Canvas was built for. Choosing a representation is an engineering decision, and now you can measure it.`,
+For our pixel editor, we'll create a function that calculates how large each pixel should be based on the canvas size and grid dimensions.`,
+	task: `1. Look at the \`getPixelSize\` function — it takes two parameters and returns a value.
+2. Change the canvas width to 400 and grid width to 20.
+3. The function will automatically calculate the new pixel size.
+4. Add a call to \`getPixelSize\` with different numbers to see how it works.
+5. Create your own function called \`getTotalPixels\` that multiplies width by height.`,
+	concept: `**Functions, parameters, and return values** — naming reusable operations that accept inputs and produce outputs.`,
+	whyItMatters: `Functions let us write code once and use it many times. This makes our code shorter, easier to read, and easier to fix — if we change the function, every place that uses it gets the update automatically.`,
 	starterCode: {
 		html: `<!DOCTYPE html>
 <html lang="en">
@@ -28,15 +24,9 @@ The interesting part is not the new API. It is the comparison: same grid, two re
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h3>Pixel Art Editor — the same grid, two representations</h3>
-  <div id="controls">
-    <button class="size-btn" data-size="32">32 × 32</button>
-    <button class="size-btn" data-size="64">64 × 64</button>
-    <button id="compare-btn">Compare DOM vs Canvas</button>
-  </div>
-  <p id="report">Canvas draws the whole grid with a single element.</p>
-  <canvas id="canvas" width="32" height="32"></canvas>
-  <div id="dom-grid"></div>
+  <h3>Pixel Art Editor</h3>
+  <canvas id="canvas"></canvas>
+  <p id="info"></p>
   <script src="script.js"></script>
 </body>
 </html>`,
@@ -52,111 +42,40 @@ body {
   gap: 12px;
 }
 h3 { font-size: 14px; opacity: 0.7; }
-#controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.size-btn, #compare-btn {
-  background: #2a2a44;
-  color: #e0e0e0;
-  border: 1px solid #3a3a5c;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 13px;
-  cursor: pointer;
-}
-.size-btn:hover, #compare-btn:hover { border-color: #8b8bcc; }
-#report {
-  color: #8888aa;
-  font-size: 13px;
-  text-align: center;
-  min-height: 36px;
-  max-width: 620px;
-}
 #canvas {
-  width: 512px;
-  height: 512px;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  border: 2px solid #3a3a5c;
+  background: #2a2a3e;
+  border: 2px solid #333;
 }
-#dom-grid {
-  display: grid;
-  grid-template-columns: repeat(var(--size, 32), 1fr);
-  width: 512px;
-  height: 512px;
-}
-.cell.light { background: #2a2a3e; }
-.cell.dark { background: #1a1a2e; }`,
-		javascript: `// Pixel Art Editor — Lesson 10: The Rescue (Canvas)
+#info { font-size: 12px; opacity: 0.6; }`,
+		javascript: `// Pixel Art Editor — Lesson 10: Give the Code a Job
 
+// Canvas dimensions
+const canvasWidth = 400;
+const canvasHeight = 400;
+
+// Grid dimensions
+const gridWidth = 20;
+const gridHeight = 20;
+
+// Function to calculate pixel size
+function getPixelSize(canvasSize, gridSize) {
+  return canvasSize / gridSize;
+}
+
+// Use the function
+const pixelWidth = getPixelSize(canvasWidth, gridWidth);
+const pixelHeight = getPixelSize(canvasHeight, gridHeight);
+
+// Apply to canvas
 const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const domGrid = document.getElementById("dom-grid");
-const reportEl = document.getElementById("report");
+canvas.width = canvasWidth;
+canvas.height = canvasHeight;
 
-const LIGHT = "#2a2a3e";
-const DARK = "#1a1a2e";
-let size = 32;
+// Display info
+const info = document.getElementById("info");
+info.textContent = "Pixel size: " + pixelWidth + "x" + pixelHeight;
 
-// ── Canvas: one element, pixel by pixel ──
-function renderCanvas(size) {
-  const start = performance.now();
-
-  canvas.width = size;
-  canvas.height = size;
-
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      ctx.fillStyle = (x + y) % 2 === 0 ? LIGHT : DARK;
-      ctx.fillRect(x, y, 1, 1);
-    }
-  }
-
-  return performance.now() - start;
-}
-
-// ── DOM: one element per pixel ──
-function renderDom(size) {
-  const start = performance.now();
-
-  domGrid.innerHTML = "";
-  domGrid.style.setProperty("--size", size);
-
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const cell = document.createElement("div");
-      cell.className = (x + y) % 2 === 0 ? "cell light" : "cell dark";
-      domGrid.appendChild(cell);
-    }
-  }
-
-  return performance.now() - start;
-}
-
-function setSize(next) {
-  size = next;
-  const ms = renderCanvas(size);
-  domGrid.innerHTML = "";
-  reportEl.textContent =
-    size + "×" + size + " on Canvas: " + (size * size).toLocaleString() +
-    " pixels in " + ms.toFixed(1) + " ms · 1 element";
-  console.log("Canvas", size + "x" + size, ms.toFixed(1) + "ms");
-}
-
-document.querySelectorAll(".size-btn").forEach((btn) => {
-  btn.addEventListener("click", () => setSize(Number(btn.dataset.size)));
-});
-
-document.getElementById("compare-btn").addEventListener("click", () => {
-  const canvasMs = renderCanvas(size);
-  const domMs = renderDom(size);
-  const cells = size * size;
-
-  reportEl.textContent =
-    size + "×" + size + " — Canvas: " + canvasMs.toFixed(1) + " ms (1 element)" +
-    " vs DOM: " + domMs.toFixed(1) + " ms (" + cells.toLocaleString() + " elements)";
-
-  console.log("Compare", size + "x" + size, "canvas", canvasMs.toFixed(1), "dom", domMs.toFixed(1));
-});
-
-setSize(32);`
+console.log("Pixel width:", pixelWidth);
+console.log("Pixel height:", pixelHeight);`
 	}
 };
